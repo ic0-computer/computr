@@ -3,8 +3,9 @@
 </script>
 
 <div>
-  <h1>My New Web Extension</h1>
-  <p>Message: {msg}</p>
+  <h1>Computr</h1>
+  <p>Message: </p>
+  <p>{msg}</p>
 </div>
 
 <style>
