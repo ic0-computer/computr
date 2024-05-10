@@ -1,7 +1,7 @@
-import browser from 'webextension-polyfill';
+// import browser from 'webextension-polyfill';
 
-console.log('Background script running...');
+// console.log('Background script running...');
 
-browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log('Message received in background script:', message);
-});
+// browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
+//   console.log('Message received in background script:', message);
+// });
