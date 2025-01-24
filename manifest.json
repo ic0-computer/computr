@@ -39,10 +39,17 @@
     }
   },
 
-  "permissions": ["storage"],
+  "permissions": ["storage", "activeTab"],
 
   "options_ui": {
     "page": "public/settings.html",
     "open_in_tab": true
-  }
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["dist/inpage.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
