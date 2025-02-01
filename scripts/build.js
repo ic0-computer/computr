@@ -1,3 +1,4 @@
+// scripts/build.js
 const { build } = require("esbuild");
 const sveltePlugin = require("esbuild-svelte");
 const sveltePreprocess = require("svelte-preprocess");
@@ -39,6 +40,9 @@ async function main() {
     minify: isProdBuild,
     tsconfig: "./tsconfig.json",
     drop: isProdBuild ? ["console"] : undefined,
+    define: {
+      global: "window", // Ensures global is replaced with window in all JS files
+    },
   };
 
   try {
@@ -79,7 +83,13 @@ async function main() {
       ],
     });
 
-    await Promise.all([contentJob, backgroundJob, popupJob, settingsJob]);
+    const inpageJob = build({
+      ...commonConfig,
+      entryPoints: ["./src/inpage.ts"],
+      outfile: "./dist/inpage.js",
+    });
+
+    await Promise.all([contentJob, backgroundJob, popupJob, settingsJob, inpageJob]);
     console.log("⚡ Compiled");
   } catch (e) {
     console.error("Build failed:", e);

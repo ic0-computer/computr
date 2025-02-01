@@ -1,33 +1,34 @@
-import { BrowserRPC } from "../provider/browser-rpc/dist/index";
-import { Provider } from "../provider/plug-inpage-provider/dist/src/index";
+import { BrowserRPC } from '@fleekhq/browser-rpc';
+import { Provider } from '@funded-labs/plug-inpage-provider';
 
-// Initialize BrowserRPC
+// Step 1: Initialize BrowserRPC for communication with the content script
 const clientRPC = new BrowserRPC(window, {
-  name: "my-inpage-provider",
-  target: "my-content-script",
-  timeout: 20000, // Adjust timeout as needed
+  name: 'my-inpage-provider',
+  target: 'my-content-script',
+  timeout: 20000, // Adjust based on your needs
 });
-
-// Start the clientRPC
 clientRPC.start();
 
-// Create and initialize the provider
+// Step 2: Initialize the provider (acting as a bridge)
 const provider = new Provider(clientRPC, window);
 provider.init();
 
-// Optionally expose additional methods
-provider.expose("sayHello", (args: { name: string }, callback: Function) => {
+// Step 3: Define RPC handlers that allow communication from the web page
+clientRPC.exposeHandler('sayHello', (args: { name: string }, callback: Function) => {
   const result = `Hello, ${args.name}!`;
   callback(null, result);
 });
 
-// Expose the provider under `window.ic`
+// Step 4: Attach the provider to `window.ic` so the webpage can access it
 const ic = window.ic || {};
 window.ic = {
   ...ic,
-  myExtension: provider, // Use a unique namespace for your extension
+  computr: provider, // Unique namespace for your extension
 };
 
-console.log("Inpage script initialized, window.ic:", window.ic);
+console.log('✅ inpage.js injected and initialized!', window.ic);
+
+// Step 5: Test message sending (Optional)
+window.postMessage({ source: 'inpage.js', message: 'Injected successfully!' }, '*');
 
 export default provider;

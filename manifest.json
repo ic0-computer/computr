@@ -39,7 +39,7 @@
     }
   },
 
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "tabs"],
 
   "options_ui": {
     "page": "public/settings.html",
@@ -49,7 +49,7 @@
   "web_accessible_resources": [
     {
       "resources": ["dist/inpage.js"],
-      "matches": ["<all_urls>"]
+      "matches": ["http://*/*", "https://*/*"]
     }
   ]
 }
