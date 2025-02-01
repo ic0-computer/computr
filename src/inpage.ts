@@ -1,5 +1,5 @@
 import { BrowserRPC } from '@fleekhq/browser-rpc';
-import { Provider } from '@funded-labs/plug-inpage-provider';
+import { Provider } from './plug-inpage-provider/src/index';
 
 // Step 1: Initialize BrowserRPC for communication with the content script
 const clientRPC = new BrowserRPC(window, {

@@ -9,12 +9,15 @@
     "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
+    "allowImportingTsExtensions": true,
     "forceConsistentCasingInFileNames": true,
     "alwaysStrict": true,
     "resolveJsonModule": true,
     "importsNotUsedAsValues": "remove",
     "jsx": "react",
-    "types": ["svelte"]
+    "types": ["svelte"],
+    "moduleResolution": "bundler",
+    "noEmit": true
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules/*", "dist/*"]
