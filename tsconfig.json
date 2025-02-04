@@ -1,24 +1,26 @@
 {
-  "extends": "@tsconfig/svelte/tsconfig.json",
   "compilerOptions": {
-    "target": "ES2016",
-    "module": "ES2022",
-    "lib": ["ES2022", "dom"],
-    "sourceMap": true,
-    "outDir": "./dist",
-    "rootDir": "./src",
-    "strict": true,
-    "esModuleInterop": true,
-    "allowImportingTsExtensions": true,
-    "forceConsistentCasingInFileNames": true,
-    "alwaysStrict": true,
-    "resolveJsonModule": true,
-    "importsNotUsedAsValues": "remove",
-    "jsx": "react",
-    "types": ["svelte"],
-    "moduleResolution": "bundler",
-    "noEmit": true
+    "target": "ES2022",               // Modern JavaScript output
+    "lib": ["ES2016", "ES2017", "DOM"],
+    "module": "ESNext",                // Support for ES Modules
+    "moduleResolution": "node",        // Resolve modules like Node.js
+    "strict": true,                    // Enables strict type checking
+    "esModuleInterop": true,           // Enable interop for CommonJS/ES modules
+    "resolveJsonModule": true,         // Allow importing JSON files as modules
+    "declaration": true,               // Generate .d.ts declaration files
+    "noImplicitAny": false, // think about removing this one
+    "outDir": "./dist",                // Output directory for compiled code
+    "rootDir": "./src",                // The root directory for source files
+    "jsx": "react",                    // Support for JSX syntax (adjust if not needed)
+    "types": ["svelte", "node"],               // Types for Svelte (if using Svelte)
+    "skipLibCheck": true               // Skip type checking of declaration files (speeds up compilation)
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules/*", "dist/*"]
+  "include": [
+    "src/**/*"                         // Include all files in the 'src' directory
+  ],
+  "exclude": [
+    "node_modules",                    // Exclude node_modules
+    "dist",                             // Exclude the build directory
+    "**/*.spec.ts", "**/*.test.ts"      // Exclude test files
+  ]
 }

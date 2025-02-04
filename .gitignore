@@ -1,3 +1,71 @@
-# web
-**/node_modules
-/dist
+# Node Modules and Dependencies
+node_modules/
+bower_components/
+jspm_packages/
+
+# Build and Output Directories
+dist/
+public/
+.next/
+.nuxt/
+.vuepress/dist
+.serverless/
+.fusebox/
+.dynamodb/
+
+# Logs and Debugging
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Runtime Data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Cache and Build Artifacts
+.nyc_output/
+coverage/
+*.lcov
+.grunt/
+.lock-wscript
+.cache/
+.build/
+build/Release/
+
+# TypeScript and JavaScript
+typings/
+*.tsbuildinfo
+.eslintcache
+
+# REPL and History
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn and NPM
+.yarn-integrity
+.npm
+
+# Dotenv Files
+.env
+.env.test
+
+# IDE and Editor Files
+.DS_*
+*.sublime*
+
+# Temporary and Backup Files
+**/*.backup.*
+**/*.back.*
+
+# Design Files
+psd
+thumb
+sketch
