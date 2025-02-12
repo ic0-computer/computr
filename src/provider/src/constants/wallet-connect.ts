@@ -8,11 +8,11 @@ export const SIGN_METHODS = [
 ];
 export const DEFAULT_TIMEOUT = 120000;
 export const WC_MOBILE_REGISTRY_ENTRY = {
-  name: "Plug Wallet",
-  shortName: "Plug",
-  color: "Rainbow",
+  name: "",
+  shortName: "",
+  color: "",
   logo: "",
-  universalLink: "https://plugwallet.ooo",
+  universalLink: "",
   deepLink: "wc://",
 };
 export const IS_UNLOCK_METHOD = "isUnlock";
