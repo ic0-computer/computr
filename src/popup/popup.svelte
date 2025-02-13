@@ -1,14 +1,31 @@
 <script lang="ts">
   import browser from 'webextension-polyfill';
+  import { Principal } from '@dfinity/principal';
 
-  export let principalId: string;
+  // Set a default value here to ensure principalId is never undefined.
+  export let principalId: string = '';
 
   let inputValue = principalId;
+  let errorMessage = '';
+
+  function isValidPrincipal(text: string): boolean {
+    try {
+      Principal.fromText(text);
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
 
   // Save Principal ID
   const savePrincipalId = async () => {
-    await browser.storage.local.set({ principalId: inputValue });
-    principalId = inputValue;
+    if (isValidPrincipal(inputValue)) {
+      await browser.storage.local.set({ principalId: inputValue });
+      principalId = inputValue;
+      errorMessage = '';
+    } else {
+      errorMessage = 'Invalid Principal ID';
+    }
   };
 
   // Delete Principal ID
@@ -16,6 +33,7 @@
     await browser.storage.local.remove('principalId');
     principalId = '';
     inputValue = '';
+    errorMessage = '';
   };
 </script>
 
@@ -27,6 +45,9 @@
   </label>
   <button on:click={savePrincipalId}>Save</button>
   <button on:click={deletePrincipalId}>Delete</button>
+  {#if errorMessage}
+    <p class="error">{errorMessage}</p>
+  {/if}
   <p>Stored ID: {principalId || "None"}</p>
 </div>
 
@@ -46,5 +67,8 @@
     margin-top: 5px;
     padding: 5px 10px;
     cursor: pointer;
+  }
+  .error {
+    color: red;
   }
 </style>

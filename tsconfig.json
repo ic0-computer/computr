@@ -8,15 +8,17 @@
     "esModuleInterop": true,           // Enable interop for CommonJS/ES modules
     "resolveJsonModule": true,         // Allow importing JSON files as modules
     "declaration": true,               // Generate .d.ts declaration files
-    "noImplicitAny": false, // think about removing this one
+    "noImplicitAny": false,            // Allows implicit `any` type, but can be removed later
     "outDir": "./dist",                // Output directory for compiled code
     "rootDir": "./src",                // The root directory for source files
     "jsx": "react",                    // Support for JSX syntax (adjust if not needed)
-    "types": ["svelte", "node"],               // Types for Svelte (if using Svelte)
-    "skipLibCheck": true               // Skip type checking of declaration files (speeds up compilation)
+    "types": ["svelte", "node"],       // Types for Svelte (if using Svelte)
+    "skipLibCheck": true,              // Skip type checking of declaration files (speeds up compilation)
+    "allowJs": true                    // Allow JavaScript files to be imported
   },
   "include": [
-    "src/**/*"                         // Include all files in the 'src' directory
+    "src/**/*",                        // Include all files in the 'src' directory
+    "node_modules/svelte/types/**/*.d.ts" // Explicitly include Svelte types
   ],
   "exclude": [
     "node_modules",                    // Exclude node_modules

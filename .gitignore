@@ -69,3 +69,7 @@ typings/
 psd
 thumb
 sketch
+
+# Firefox Builds
+extension-source.zip
+packaged-extension.zip

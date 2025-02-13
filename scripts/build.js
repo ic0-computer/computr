@@ -1,4 +1,3 @@
-// scripts/build.js
 const { build } = require("esbuild");
 const sveltePlugin = require("esbuild-svelte");
 const sveltePreprocess = require("svelte-preprocess");
@@ -15,14 +14,14 @@ const rawPlugin = {
     build.onLoad({ filter: /.*/, namespace: "raw" }, async (args) => {
       const fs = require("fs");
       const path = require("path");
-      const filePath = args.path.replace(/\?raw$/, ""); // Remove the `?raw` suffix
+      const filePath = args.path.replace(/\?raw$/, "");
       const content = await fs.promises.readFile(
         path.resolve(__dirname, filePath),
         "utf8"
       );
       return {
         contents: content,
-        loader: "text", // Treat the file as plain text
+        loader: "text",
       };
     });
   },
@@ -41,21 +40,21 @@ async function main() {
     tsconfig: "./tsconfig.json",
     drop: isProdBuild ? ["console"] : undefined,
     define: {
-      global: "window", // Ensures global is replaced with window in all JS files
+      global: "window",
     },
   };
 
   try {
     const contentJob = build({
       ...commonConfig,
-      entryPoints: ["./src/content.ts"],
+      entryPoints: ["./src/bridge/content.ts"],
       outfile: "./dist/content.js",
-      plugins: [rawPlugin], // Add the raw plugin
+      plugins: [rawPlugin],
     });
 
     const backgroundJob = build({
       ...commonConfig,
-      entryPoints: ["./src/background.ts"],
+      entryPoints: ["./src/background/background.ts"],
       outfile: "./dist/background.js",
     });
 
@@ -85,7 +84,7 @@ async function main() {
 
     const inpageJob = build({
       ...commonConfig,
-      entryPoints: ["./src/inpage.ts"],
+      entryPoints: ["./src/bridge/inpage.ts"],
       outfile: "./dist/inpage.js",
     });
 
