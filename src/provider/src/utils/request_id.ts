@@ -4,7 +4,6 @@ import { Buffer } from "buffer";
 import {
   BinaryBlob,
   blobFromBuffer,
-  blobFromUint8Array,
   blobToHex,
   lebEncode,
 } from "@dfinity/candid";
@@ -27,7 +26,7 @@ export function toHex(requestId: RequestId): string {
  */
 export function hash(data: Buffer): BinaryBlob {
   const hashed: ArrayBuffer = jsSha256.create().update(data).arrayBuffer();
-  return blobFromUint8Array(new Uint8Array(hashed));
+  return Buffer.from(new Uint8Array(hashed));
 }
 
 interface ToHashable {
@@ -42,16 +41,16 @@ function hashValue(value: any): BinaryBlob {
   } else if (typeof value === "number") {
     return hash(lebEncode(value));
   } else if (Buffer.isBuffer(value)) {
-    return hash(blobFromUint8Array(new Uint8Array(value)));
+    return hash(Buffer.from(new Uint8Array(value)));
   } else if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
-    return hash(blobFromUint8Array(new Uint8Array(value)));
+    return hash(Buffer.from(new Uint8Array(value)));
   } else if (Array.isArray(value)) {
     const vals = value.map(hashValue);
     return hash(Buffer.concat(vals) as BinaryBlob);
   } else if (value instanceof Principal) {
-    return hash(blobFromUint8Array(value.toUint8Array()));
+    return hash(Buffer.from(value.toUint8Array()));
   } else if (value._isPrincipal) {
-    return hash(blobFromUint8Array(value._arr));
+    return hash(Buffer.from(value._arr));
   } else if (
     typeof value === "object" &&
     value !== null &&

@@ -1,19 +1,21 @@
 <script lang="ts">
   import browser from 'webextension-polyfill';
 
-  export let principalId: string;
+  // Expect a prop "principalId" (default is an empty string)
+  export let principalId: string = '';
 
+  // Local binding for input
   let inputValue = principalId;
 
-  // Save Principal ID
+  // Save Principal ID to storage
   const savePrincipalId = async () => {
-    await browser.storage.local.set({ principalId: inputValue });
+    await browser.storage.local.set({ "ic.computr.principalId": inputValue });
     principalId = inputValue;
   };
 
-  // Delete Principal ID
+  // Delete Principal ID from storage
   const deletePrincipalId = async () => {
-    await browser.storage.local.remove('principalId');
+    await browser.storage.local.remove("ic.computr.principalId");
     principalId = '';
     inputValue = '';
   };

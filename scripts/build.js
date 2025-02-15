@@ -48,14 +48,14 @@ async function main() {
   try {
     const contentJob = build({
       ...commonConfig,
-      entryPoints: ["./src/content.ts"],
+      entryPoints: ["./src/bridge/content.ts"],
       outfile: "./dist/content.js",
       plugins: [rawPlugin], // Add the raw plugin
     });
 
     const backgroundJob = build({
       ...commonConfig,
-      entryPoints: ["./src/background.ts"],
+      entryPoints: ["./src/background/background.ts"],
       outfile: "./dist/background.js",
     });
 
@@ -85,7 +85,7 @@ async function main() {
 
     const inpageJob = build({
       ...commonConfig,
-      entryPoints: ["./src/inpage.ts"],
+      entryPoints: ["./src/bridge/inpage.ts"],
       outfile: "./dist/inpage.js",
     });
 

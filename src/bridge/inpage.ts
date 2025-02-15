@@ -1,5 +1,5 @@
 import { BrowserRPC } from '@fleekhq/browser-rpc';
-import { Provider } from './provider/src/index';
+import { Provider } from '../provider/src/index';
 
 // Extend the Window type to include `ic`
 declare global {
