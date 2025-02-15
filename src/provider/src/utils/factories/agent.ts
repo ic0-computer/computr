@@ -8,8 +8,6 @@ import {
 } from "@dfinity/agent";
 import {
   BinaryBlob,
-  blobFromUint8Array,
-  blobToUint8Array,
   IDL,
 } from "@dfinity/candid";
 import { Principal } from "@dfinity/principal";
@@ -42,9 +40,7 @@ export const callMethodFactory =
         IDL.decode(idl[options.methodName], options.arg)
       );
     }
-    const arg = bufferToBase64(
-      Buffer.from(blobToUint8Array(options.arg).buffer)
-    );
+    const arg = bufferToBase64(Buffer.from(options.arg));
     const result = await clientRPC.call({
       handler: "requestCall",
       args: [
@@ -63,7 +59,7 @@ export const callMethodFactory =
 
     return {
       ...result,
-      requestId: blobFromUint8Array(
+      requestId: Buffer.from(
         new Uint8Array(base64ToBuffer(result.requestId))
       ),
     };
@@ -83,7 +79,7 @@ export const queryMethodFactory =
         {
           canisterId: canisterId.toString(),
           methodName: fields.methodName,
-          arg: bufferToBase64(Buffer.from(blobToUint8Array(fields.arg).buffer)),
+          arg: bufferToBase64(Buffer.from(fields.arg)),
         },
         batchTxId,
       ],
@@ -95,7 +91,7 @@ export const queryMethodFactory =
       ? {
           ...result,
           reply: {
-            arg: blobFromUint8Array(
+            arg: Buffer.from(
               new Uint8Array(base64ToBuffer(result.reply.arg))
             ),
           },
@@ -113,7 +109,7 @@ export const readStateMethodFactory =
     identity?: Identity | Promise<Identity>
   ): Promise<ReadStateResponse> => {
     const paths = fields.paths[0].map((path) =>
-      bufferToBase64(Buffer.from(blobToUint8Array(path).buffer))
+      bufferToBase64(Buffer.from(path))
     );
 
     try {
@@ -131,7 +127,7 @@ export const readStateMethodFactory =
       if (result.error) throw result.error.message;
 
       return {
-        certificate: blobFromUint8Array(
+        certificate: Buffer.from(
           new Uint8Array(base64ToBuffer(result.certificate))
         ),
       };

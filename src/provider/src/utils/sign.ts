@@ -1,4 +1,4 @@
-import { BinaryBlob, blobToUint8Array, IDL, JsonValue } from "@dfinity/candid";
+import { IDL, JsonValue } from "@dfinity/candid";
 import { Buffer } from "buffer";
 import { Transaction } from "../Provider/interfaces";
 import { recursiveParseBigint } from "./bigint";
@@ -108,6 +108,5 @@ export const parseMessageToString = (message: BinaryBlob | Buffer | ArrayBuffer)
   if (message instanceof ArrayBuffer) {
     return bufferToBase64(Buffer.from(message));
   }
-  //@ts-ignore
-  return bufferToBase64(Buffer.from(blobToUint8Array(message)));
+  return bufferToBase64(Buffer.from(message));
 }
