@@ -101,7 +101,7 @@ export const getArgTypes = (interfaceFactory: IDL.InterfaceFactory) => {
   return methodArgType;
 };
 
-export const parseMessageToString = (message: BinaryBlob | Buffer | ArrayBuffer) => {
+export const parseMessageToString = (message: ArrayBuffer | Buffer | ArrayBuffer) => {
   if (message instanceof Buffer) {
     return bufferToBase64(message);
   }

@@ -2,11 +2,7 @@
   import browser from 'webextension-polyfill';
   import { Principal } from '@dfinity/principal';
 
-<<<<<<< HEAD
-  // Set a default value here to ensure principalId is never undefined.
-=======
   // Expect a prop "principalId" (default is an empty string)
->>>>>>> bded19e
   export let principalId: string = '';
 
   // Local binding for input
@@ -24,18 +20,8 @@
 
   // Save Principal ID to storage
   const savePrincipalId = async () => {
-<<<<<<< HEAD
-    if (isValidPrincipal(inputValue)) {
-      await browser.storage.local.set({ principalId: inputValue });
-      principalId = inputValue;
-      errorMessage = '';
-    } else {
-      errorMessage = 'Invalid Principal ID';
-    }
-=======
     await browser.storage.local.set({ "ic.computr.principalId": inputValue });
     principalId = inputValue;
->>>>>>> bded19e
   };
 
   // Delete Principal ID from storage

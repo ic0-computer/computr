@@ -7,7 +7,6 @@ import {
   ReadStateResponse,
 } from "@dfinity/agent";
 import {
-  BinaryBlob,
   IDL,
 } from "@dfinity/candid";
 import { Principal } from "@dfinity/principal";
@@ -29,7 +28,7 @@ export const callMethodFactory =
     canisterId: Principal | string,
     options: {
       methodName: string;
-      arg: BinaryBlob;
+      arg: ArrayBuffer;
       effectiveCanisterId?: Principal | string;
     },
     identity?: Identity | Promise<Identity>

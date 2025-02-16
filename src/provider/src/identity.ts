@@ -4,7 +4,6 @@ import {
   ReadRequest,
   CallRequest,
 } from "@dfinity/agent";
-import { BinaryBlob } from "@dfinity/candid";
 import { Principal } from "@dfinity/principal";
 import { SerializedPublicKey } from "./Provider/interfaces";
 
@@ -34,7 +33,7 @@ export class PlugIdentity extends SignIdentity {
     return this.publicKey;
   }
 
-  async sign(_blob: BinaryBlob, _signInfo?: RequestType): Promise<BinaryBlob> {
+  async sign(_blob: ArrayBuffer, _signInfo?: RequestType): Promise<ArrayBuffer> {
     throw "DONT USE SIGN FROM IDENTITY";
   }
 

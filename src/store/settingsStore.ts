@@ -6,19 +6,6 @@ export const DEFAULT_SETTINGS = {
   displayHelpMessage: true
 };
 
-<<<<<<< HEAD
-// Create a writable store
-export const settingsStore = writable(DEFAULT_SETTINGS);
-
-// Load settings from storage
-export async function loadSettings() {
-  const storedSettings = (await browser.storage.sync.get('settings')).settings;
-  const settings = storedSettings ? { ...DEFAULT_SETTINGS, ...storedSettings } : DEFAULT_SETTINGS;
-  settingsStore.set(settings);
-}
-
-// Update settings in storage and store
-=======
 // Create a writable store with default settings
 export const settingsStore = writable(DEFAULT_SETTINGS);
 
@@ -33,7 +20,6 @@ export async function loadSettings() {
 }
 
 // Update settings in storage and update the store
->>>>>>> bded19e
 export async function updateSettings(newSettings: Partial<typeof DEFAULT_SETTINGS>) {
   settingsStore.update((current) => {
     const updated = { ...current, ...newSettings };

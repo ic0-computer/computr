@@ -2,11 +2,7 @@
   import { settingsStore, updateSettings } from '../store/settingsStore';
   import { get } from 'svelte/store';
 
-<<<<<<< HEAD
-  let appSettings = get(settingsStore); // Get current settings
-=======
   let appSettings = get(settingsStore);
->>>>>>> bded19e
 
   const updateDisplayHelpMessage = (event: Event) => {
     const target = event.currentTarget as HTMLInputElement;

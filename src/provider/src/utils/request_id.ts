@@ -2,7 +2,6 @@ import { sha256 as jsSha256 } from "js-sha256";
 import borc from "borc";
 import { Buffer } from "buffer";
 import {
-  BinaryBlob,
   blobFromBuffer,
   blobToHex,
   lebEncode,
@@ -11,7 +10,7 @@ import { Principal } from "@dfinity/principal";
 import { TextEncoder } from 'text-encoding-shim';
 
 
-export type RequestId = BinaryBlob & { __requestId__: void };
+export type RequestId = ArrayBuffer & { __requestId__: void };
 /**
  * get RequestId as hex-encoded blob.
  * @param requestId - RequestId to hex
@@ -24,7 +23,7 @@ export function toHex(requestId: RequestId): string {
  * sha256 hash the provided Buffer
  * @param data - input to hash function
  */
-export function hash(data: Buffer): BinaryBlob {
+export function hash(data: Buffer): ArrayBuffer {
   const hashed: ArrayBuffer = jsSha256.create().update(data).arrayBuffer();
   return Buffer.from(new Uint8Array(hashed));
 }
@@ -33,7 +32,7 @@ interface ToHashable {
   toHash(): unknown;
 }
 
-function hashValue(value: any): BinaryBlob {
+function hashValue(value: any): ArrayBuffer {
   if (value instanceof borc.Tagged) {
     return hashValue((value as borc.Tagged).value);
   } else if (typeof value === "string") {
@@ -46,7 +45,7 @@ function hashValue(value: any): BinaryBlob {
     return hash(Buffer.from(new Uint8Array(value)));
   } else if (Array.isArray(value)) {
     const vals = value.map(hashValue);
-    return hash(Buffer.concat(vals) as BinaryBlob);
+    return hash(Buffer.concat(vals) as ArrayBuffer);
   } else if (value instanceof Principal) {
     return hash(Buffer.from(value.toUint8Array()));
   } else if (value._isPrincipal) {
@@ -65,7 +64,7 @@ function hashValue(value: any): BinaryBlob {
     // Do this check much later than the other bigint check because this one is much less
     // type-safe.
     // So we want to try all the high-assurance type guards before this 'probable' one.
-    return hash(lebEncode(value) as BinaryBlob);
+    return hash(lebEncode(value) as ArrayBuffer);
   }
   throw Object.assign(
     new Error(
@@ -79,7 +78,7 @@ function hashValue(value: any): BinaryBlob {
   );
 }
 
-const hashString = (value: string): BinaryBlob => {
+const hashString = (value: string): ArrayBuffer => {
   const encoder = new TextEncoder('utf-8');
   const encoded = encoder.encode(value);
   return hash(Buffer.from(encoded));
@@ -89,7 +88,7 @@ const hashString = (value: string): BinaryBlob => {
  * Concatenate many blobs.
  * @param bs - blobs to concatenate
  */
-function concat(bs: BinaryBlob[]): BinaryBlob {
+function concat(bs: ArrayBuffer[]): ArrayBuffer {
   return blobFromBuffer(Buffer.concat(bs));
 }
 
@@ -101,24 +100,24 @@ function concat(bs: BinaryBlob[]): BinaryBlob {
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function requestIdOf(request: Record<string, any>): RequestId {
-  const hashed: Array<[BinaryBlob, BinaryBlob]> = Object.entries(request)
+  const hashed: Array<[ArrayBuffer, ArrayBuffer]> = Object.entries(request)
     .filter(([, value]) => value !== undefined)
     .map(([key, value]: [string, unknown]) => {
       const hashedKey = hashString(key);
       const hashedValue = hashValue(value);
 
-      return [hashedKey, hashedValue] as [BinaryBlob, BinaryBlob];
+      return [hashedKey, hashedValue] as [ArrayBuffer, ArrayBuffer];
     });
 
-  const traversed: Array<[BinaryBlob, BinaryBlob]> = hashed;
+  const traversed: Array<[ArrayBuffer, ArrayBuffer]> = hashed;
 
-  const sorted: Array<[BinaryBlob, BinaryBlob]> = traversed.sort(
+  const sorted: Array<[ArrayBuffer, ArrayBuffer]> = traversed.sort(
     ([k1], [k2]) => {
       return Buffer.compare(Buffer.from(k1), Buffer.from(k2));
     }
   );
 
-  const concatenated: BinaryBlob = concat(sorted.map(concat));
+  const concatenated: ArrayBuffer = concat(sorted.map(concat));
   const requestId = hash(concatenated) as RequestId;
   return requestId;
 }

@@ -1,5 +1,5 @@
 import { Agent, HttpAgent, ActorSubclass } from "@dfinity/agent";
-import { BinaryBlob, DerEncodedBlob, IDL } from "@dfinity/candid";
+import { IDL } from "@dfinity/candid";
 import { Principal } from "@dfinity/principal";
 import { ConnectionData } from "../modules/SessionManager";
 
@@ -112,7 +112,7 @@ export interface ProviderInterface {
   principal?: string;
   accountId?: string;
   getICNSInfo: () => Promise<ICNSInfo>;
-  signMessage: (message: BinaryBlob | Buffer | ArrayBuffer) => Promise<BinaryBlob>;
+  signMessage: (message: ArrayBuffer | Buffer | ArrayBuffer) => Promise<ArrayBuffer>;
 }
 
 export interface SerializedPublicKey {
@@ -122,7 +122,7 @@ export interface SerializedPublicKey {
   };
   derKey: {
     type: string;
-    data: DerEncodedBlob;
+    data: any;
   };
 }
 
