@@ -42,6 +42,7 @@ class PlugAgent extends HttpAgent {
   ) {
     super(options);
 
+    //@ts-ignorets-ignore
     this["query"] = queryMethodFactory(clientRPC, batchTxId);
     this["call"] = callMethodFactory(clientRPC, batchTxId, idl);
     this["readState"] = readStateMethodFactory(clientRPC, batchTxId);

@@ -47,20 +47,20 @@ async function main() {
   try {
     const contentJob = build({
       ...commonConfig,
-      entryPoints: ["./src/bridge/content.ts"],
+      entryPoints: ["./source/bridge/content.ts"],
       outfile: "./dist/content.js",
       plugins: [rawPlugin],
     });
 
     const backgroundJob = build({
       ...commonConfig,
-      entryPoints: ["./src/background/background.ts"],
+      entryPoints: ["./source/background/background.ts"],
       outfile: "./dist/background.js",
     });
 
     const popupJob = build({
       ...commonConfig,
-      entryPoints: ["./src/popup/popup.ts"],
+      entryPoints: ["./source/popup/popup.ts"],
       outdir: "./dist",
       mainFields: ["svelte", "module", "main", "browser"],
       plugins: [
@@ -72,7 +72,7 @@ async function main() {
 
     const settingsJob = build({
       ...commonConfig,
-      entryPoints: ["./src/settings/settings.ts"],
+      entryPoints: ["./source/settings/settings.ts"],
       outdir: "./dist",
       mainFields: ["svelte", "module", "main", "browser"],
       plugins: [
@@ -84,7 +84,7 @@ async function main() {
 
     const inpageJob = build({
       ...commonConfig,
-      entryPoints: ["./src/bridge/inpage.ts"],
+      entryPoints: ["./source/bridge/inpage.ts"],
       outfile: "./dist/inpage.js",
     });
 

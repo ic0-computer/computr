@@ -9,7 +9,7 @@ export interface SignInfo {
   requestType?: string;
   canisterId?: string;
   sender?: string;
-  arguments?: Buffer;
+  arguments?: any;
   decodedArguments?: JsonValue;
 }
 
@@ -18,7 +18,7 @@ export interface AssuredSignInfo {
   requestType: string;
   canisterId: string;
   sender: string;
-  arguments: Buffer;
+  arguments: any;
   decodedArguments?: JsonValue;
   preApprove: boolean;
 }

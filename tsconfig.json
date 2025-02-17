@@ -10,19 +10,19 @@
     "declaration": true,               // Generate .d.ts declaration files
     "noImplicitAny": false,            // Allows implicit `any` type, but can be removed later
     "outDir": "./dist",                // Output directory for compiled code
-    "rootDir": "./src",                // The root directory for source files
+    "rootDir": "source",                // The root directory for source files
     "jsx": "react",                    // Support for JSX syntax (adjust if not needed)
     "types": ["svelte", "node"],       // Types for Svelte (if using Svelte)
     "skipLibCheck": true,              // Skip type checking of declaration files (speeds up compilation)
     "allowJs": true                    // Allow JavaScript files to be imported
   },
-  "include": [
-    "src/**/*",                        // Include all files in the 'src' directory
-    "node_modules/svelte/types/**/*.d.ts" // Explicitly include Svelte types
-  ],
   "exclude": [
-    "node_modules",                    // Exclude node_modules
+    "node_modules",                     // Exclude node_modules
     "dist",                             // Exclude the build directory
-    "**/*.spec.ts", "**/*.test.ts"      // Exclude test files
+    "**/*.spec.ts", "**/*.test.ts",     // Exclude test files
+    "source/provider/**/*"                      // Exclude src/provider directory
+  ],
+  "include": [
+    "source/**/*.ts"                       // Include all TypeScript files in the 'src' directory
   ]
 }

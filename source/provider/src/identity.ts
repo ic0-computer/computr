@@ -22,6 +22,7 @@ export class PlugIdentity extends SignIdentity {
   private whitelist: string[];
   constructor(publicKey: SerializedPublicKey, whitelist: string[]) {
     super();
+    //@ts-ignore
     this.publicKey = {
       ...publicKey,
       toDer: () => publicKey.derKey?.data ?? publicKey.derKey,
@@ -33,12 +34,14 @@ export class PlugIdentity extends SignIdentity {
     return this.publicKey;
   }
 
+  //@ts-ignore
   async sign(_blob: ArrayBuffer, _signInfo?: RequestType): Promise<ArrayBuffer> {
     throw "DONT USE SIGN FROM IDENTITY";
   }
 
   getPrincipal(): Principal {
     if (!this._principal) {
+      //@ts-ignore
       this._principal = Principal.selfAuthenticating(this.publicKey.toDer());
     }
     return this._principal;
