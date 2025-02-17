@@ -1,33 +1,24 @@
 <script lang="ts">
-  import browser from 'webextension-polyfill';
-  import { Principal } from '@dfinity/principal';
+  import { get } from 'svelte/store';
+  import { principalStore, updatePrincipal, deletePrincipal } from '../store/principalStore';
 
-  // Expect a prop "principalId" (default is an empty string)
-  export let principalId: string = '';
-
-  // Local binding for input
-  let inputValue = principalId;
+  let principalData = get(principalStore);
+  let inputValue = principalData.principalId;
   let errorMessage = '';
 
-  function isValidPrincipal(text: string): boolean {
-    try {
-      Principal.fromText(text);
-      return true;
-    } catch (error) {
-      return false;
-    }
-  }
-
-  // Save Principal ID to storage
+  // Save Principal ID
   const savePrincipalId = async () => {
-    await browser.storage.local.set({ "ic.computr.principalId": inputValue });
-    principalId = inputValue;
+    if (!inputValue) {
+      errorMessage = 'Principal ID cannot be empty';
+      return;
+    }
+    await updatePrincipal(inputValue);
+    errorMessage = '';
   };
 
-  // Delete Principal ID from storage
-  const deletePrincipalId = async () => {
-    await browser.storage.local.remove("ic.computr.principalId");
-    principalId = '';
+  // Delete Principal ID
+  const handleDeletePrincipal = async () => {
+    await deletePrincipal();
     inputValue = '';
     errorMessage = '';
   };
@@ -40,11 +31,11 @@
     <input type="text" bind:value={inputValue} />
   </label>
   <button on:click={savePrincipalId}>Save</button>
-  <button on:click={deletePrincipalId}>Delete</button>
+  <button on:click={handleDeletePrincipal}>Delete</button>
   {#if errorMessage}
     <p class="error">{errorMessage}</p>
   {/if}
-  <p>Stored ID: {principalId || "None"}</p>
+  <p>Stored ID: {inputValue || "None"}</p>
 </div>
 
 <style>
