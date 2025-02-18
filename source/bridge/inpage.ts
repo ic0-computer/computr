@@ -20,12 +20,6 @@ clientRPC.start();
 const provider = new Provider(clientRPC);
 provider.init();
 
-// Step 3: Define RPC handlers that allow communication from the web page
-// clientRPC.exposeHandler('sayHello', (args: { name: string }, callback: Function) => {
-//   const result = `Hello, ${args.name}!`;
-//   callback(null, result);
-// });
-
 // Step 4: Attach the provider to `window.ic` so the webpage can access it
 const ic = window.ic || {};
 window.ic = {
@@ -34,8 +28,5 @@ window.ic = {
 };
 
 console.log('✅ inpage.js injected and initialized!', window.ic);
-
-// Step 5: Test message sending (Optional)
-window.postMessage({ source: 'inpage.js', message: 'Injected successfully!' }, '*');
 
 export default provider;

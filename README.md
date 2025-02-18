@@ -1,5 +1,5 @@
 # COMPUTR
 
 ```
-window.postMessage({ source: "dataaccessgateway-agent", payload: { text: "hi you" } }, "*");
+c o m p u t r
 ```

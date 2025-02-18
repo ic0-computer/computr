@@ -7,12 +7,6 @@ import {
 import { payloadId } from "@walletconnect/jsonrpc-utils";
 import { HttpAgent } from "@dfinity/agent";
 import { Buffer } from "buffer";
-
-import {
-  SIGN_METHODS,
-  DEFAULT_TIMEOUT,
-  WC_MOBILE_REGISTRY_ENTRY,
-} from "../constants/wallet-connect";
 import {
   SerializedPublicKey,
   SimplifiedRPC,
@@ -23,6 +17,24 @@ import SignerServer from "./signer-server";
 if (typeof global.Buffer === "undefined") {
   global.Buffer = Buffer as any;
 }
+
+const DEFAULT_TIMEOUT = 120000;
+const SIGN_METHODS = [
+  "requestConnect",
+  "requestTransfer",
+  "requestTransferToken",
+  "requestBurnXTC",
+  "batchTransactions",
+  "requestCall",
+];
+const WC_MOBILE_REGISTRY_ENTRY = {
+  name: "",
+  shortName: "",
+  color: "",
+  logo: "",
+  universalLink: "",
+  deepLink: "wc://",
+};
 
 class WalletConnectRPC implements SimplifiedRPC {
   wcClient: WalletConnect;

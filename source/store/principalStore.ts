@@ -3,9 +3,7 @@ import browser from 'webextension-polyfill';
 import { Principal } from '@dfinity/principal';
 
 // Default principal store
-export const DEFAULT_PRINCIPAL = {
-  principalId: ''
-};
+export const DEFAULT_PRINCIPAL = { principalId: '' };
 
 // Create a writable store for principal
 export const principalStore = writable(DEFAULT_PRINCIPAL);
@@ -29,21 +27,22 @@ export async function loadPrincipal() {
 }
 
 // Update principal in storage
-export async function updatePrincipal(principalId: string) {
+export async function updatePrincipal(principalId: string): Promise<string | null> {
   if (!isValidPrincipal(principalId)) {
-    console.error('Invalid Principal ID');
-    return;
+    return 'Invalid Principal ID'; // Return error message instead of failing silently
   }
 
   const newPrincipal = { principalId };
-  principalStore.set(newPrincipal);
   await browser.storage.local.set({ 'ic.computr': newPrincipal });
+  principalStore.set(newPrincipal); // Ensure the store updates
+  return null; // No error
 }
 
 // Remove principal from storage
 export async function deletePrincipal() {
-  principalStore.set({ principalId: '' });
-  await browser.storage.local.set({ 'ic.computr': { principalId: '' } });
+  const emptyPrincipal = { principalId: '' };
+  await browser.storage.local.set({ 'ic.computr': emptyPrincipal });
+  principalStore.set(emptyPrincipal);
 }
 
 // Validate Principal ID

@@ -43,4 +43,4 @@ if (directories.length === 0) {
   });
 }
 
-console.log('Task finished');
+console.log('♾️  Provider Compiled');

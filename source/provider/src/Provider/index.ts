@@ -39,7 +39,6 @@ import WalletConnectRPC from "../utils/wallet-connect-rpc";
 export default class Provider implements ProviderInterface {
   public agent?: Agent;
   public versions: ProviderInterfaceVersions;
-  // @ts-ignore
   public principalId?: string;
   public accountId?: string;
   private clientRPC: RPCManager;

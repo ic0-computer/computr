@@ -1,10 +1,19 @@
 <script lang="ts">
-  import { get } from 'svelte/store';
-  import { principalStore, updatePrincipal, deletePrincipal } from '../store/principalStore';
+  import { onMount } from 'svelte';
+  import { principalStore, updatePrincipal, deletePrincipal, loadPrincipal } from '../store/principalStore';
 
-  let principalData = get(principalStore);
-  let inputValue = principalData.principalId;
+  let inputValue = '';
   let errorMessage = '';
+
+  // Subscribe to principal store
+  let principalId = '';
+  $: principalId = $principalStore.principalId || '';
+  $: inputValue = principalId;
+
+  // Load principal on mount
+  onMount(async () => {
+    await loadPrincipal();
+  });
 
   // Save Principal ID
   const savePrincipalId = async () => {
@@ -12,8 +21,13 @@
       errorMessage = 'Principal ID cannot be empty';
       return;
     }
-    await updatePrincipal(inputValue);
-    errorMessage = '';
+
+    const error = await updatePrincipal(inputValue);
+    if (error) {
+      errorMessage = error; // Show validation error
+    } else {
+      errorMessage = ''; // Clear error if successful
+    }
   };
 
   // Delete Principal ID
@@ -28,14 +42,16 @@
   <h1>Computr</h1>
   <label>
     Principal ID:
-    <input type="text" bind:value={inputValue} />
+    <input type="text" bind:value={inputValue} on:input={() => (errorMessage = '')} />
   </label>
   <button on:click={savePrincipalId}>Save</button>
   <button on:click={handleDeletePrincipal}>Delete</button>
+  
   {#if errorMessage}
     <p class="error">{errorMessage}</p>
   {/if}
-  <p>Stored ID: {inputValue || "None"}</p>
+  
+  <p>Stored ID: {principalId || "None"}</p>
 </div>
 
 <style>
@@ -57,5 +73,6 @@
   }
   .error {
     color: red;
+    font-size: 0.9em;
   }
 </style>
