@@ -88,7 +88,26 @@ async function main() {
       outfile: "./dist/inpage.js",
     });
 
-    await Promise.all([contentJob, backgroundJob, popupJob, settingsJob, inpageJob]);
+    const connectJob = build({
+      ...commonConfig,
+      entryPoints: ["./source/connect/connect.ts"], // Ensure this path is correct
+      outdir: "./dist", // Outputs connect.js in dist/
+      mainFields: ["svelte", "module", "main", "browser"],
+      plugins: [
+        sveltePlugin({
+          preprocess: sveltePreprocess(),
+        }),
+      ],
+    });
+
+    await Promise.all([
+      contentJob,
+      backgroundJob,
+      popupJob,
+      settingsJob,
+      inpageJob,
+      connectJob,
+    ]);
     console.log("⚡ Compiled");
   } catch (e) {
     console.error("Build failed:", e);

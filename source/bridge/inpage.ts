@@ -10,8 +10,8 @@ declare global {
 
 // Step 1: Initialize BrowserRPC for communication with the content script
 const clientRPC = new BrowserRPC(window, {
-  name: 'my-inpage-provider',
-  target: 'my-content-script',
+  name: 'computr-provider',
+  target: 'computr-content-script',
   timeout: 20000, // Adjust based on your needs
 });
 clientRPC.start();

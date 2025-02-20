@@ -36,6 +36,16 @@ import { validateCanisterId } from "../utils/account";
 import { bufferToBase64 } from "../utils/communication";
 import WalletConnectRPC from "../utils/wallet-connect-rpc";
 
+import { BrowserRPC } from "@fleekhq/browser-rpc";
+
+const rpcClient = new BrowserRPC(window, {
+  name: "computr-provider",
+  target: "computr-content-script",
+  timeout: 10000,
+});
+
+rpcClient.start();
+
 export default class Provider implements ProviderInterface {
   public agent?: Agent;
   public versions: ProviderInterfaceVersions;
@@ -134,15 +144,11 @@ export default class Provider implements ProviderInterface {
 
   public async requestConnect(
     args: RequestConnectParams = {}
-  ): Promise<PublicKey> {
-    const { sessionData, connection } =
-      await this.sessionManager.requestConnect(args);
-    if (sessionData) {
-      this.agent = sessionData?.agent;
-      this.principalId = sessionData?.principalId;
-      this.accountId = sessionData?.accountId;
-    }
-    return connection?.publicKey;
+  )
+  // : Promise<PublicKey> 
+  {
+    const response = await rpcClient.call("requestConnect", []);
+    return response;
   }
 
   public async createAgent({

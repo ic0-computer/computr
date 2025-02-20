@@ -5,7 +5,6 @@ jspm_packages/
 
 # Build and Output Directories
 dist/
-public/
 .next/
 .nuxt/
 .vuepress/dist

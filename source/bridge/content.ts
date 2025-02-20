@@ -1,6 +1,7 @@
-import browser from 'webextension-polyfill';
-import { ProxyRPC } from '@fleekhq/browser-rpc';
+import browser from "webextension-polyfill";
+import { ProxyRPC } from "@fleekhq/browser-rpc";
 
+// Inject inpage.js
 const injectScript = (filePath) => {
   const container = document.head || document.documentElement;
   const script = document.createElement("script");
@@ -14,29 +15,16 @@ const injectScript = (filePath) => {
 
 injectScript("dist/inpage.js");
 
-// Set up your content script RPC server (communication bridge)
+// Set up content script RPC
 const serverRPC = new ProxyRPC(window, {
-  name: 'my-content-script',
-  target: 'my-inpage-provider',
+  name: "computr-content-script",
+  target: "computr-provider",
 });
 
-// Expose a test handler (for example)
-serverRPC.exposeHandler('test', (props: { callback: Function }, name: string) => {
-  const result = `Hello, ${name}!`;
-  props.callback(null, result);
+// Relay messages from inpage.js to background.js
+serverRPC.exposeHandler("relayToBackground", async (message) => {
+  console.log("Forwarding message to background:", message);
+  return await browser.runtime.sendMessage(message);
 });
+
 serverRPC.start();
-
-// Optionally, listen for window messages and forward them to your background or storage.
-window.addEventListener('message', (event) => {
-  if (event.source !== window) return;
-  const message = event.data;
-  if (typeof message === 'object' && message.source === 'dataaccessgateway-agent') {
-    browser.storage.local.set({
-      message: message.payload.text,
-      idl: message.payload.idl,
-      call: message.payload.call,
-    });
-    browser.runtime.sendMessage(message.payload);
-  }
-});
