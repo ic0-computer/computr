@@ -1,18 +1,19 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { principalStore, updatePrincipal, deletePrincipal, loadPrincipal } from '../store/principalStore';
+  import { appStore, updateStore, deletePrincipal } from '../store/store';
 
   let inputValue = '';
   let errorMessage = '';
 
-  // Subscribe to principal store
+  // Subscribe to the principal section of the appStore
   let principalId = '';
-  $: principalId = $principalStore.principalId || '';
+  $: ({ principal } = $appStore);
+  $: principalId = principal.principalId || '';
   $: inputValue = principalId;
 
-  // Load principal on mount
-  onMount(async () => {
-    await loadPrincipal();
+  // Load store on mount (no need for separate loadPrincipal, appStore auto-loads)
+  onMount(() => {
+    // Store is already initialized in store.ts, so no explicit load needed here
   });
 
   // Save Principal ID
@@ -22,7 +23,7 @@
       return;
     }
 
-    const error = await updatePrincipal(inputValue);
+    const error = await updateStore('principal', { principalId: inputValue });
     if (error) {
       errorMessage = error; // Show validation error
     } else {

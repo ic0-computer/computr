@@ -1,3 +1,4 @@
+//@ts-ignore
 import ConnectApp from "./connect.svelte";
 
 const target = document.getElementById("connect-root");

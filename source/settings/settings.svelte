@@ -1,12 +1,12 @@
 <script lang="ts">
-  import { settingsStore, updateSettings } from '../store/settingsStore';
-  import { get } from 'svelte/store';
+  import { appStore, updateStore } from '../store/store';
 
-  let appSettings = get(settingsStore);
+  // Subscribe to the settings section of the appStore
+  $: settings = $appStore.settings;
 
   const updateDisplayHelpMessage = (event: Event) => {
     const target = event.currentTarget as HTMLInputElement;
-    updateSettings({ displayHelpMessage: target.checked });
+    updateStore('settings', { displayHelpMessage: target.checked });
   };
 </script>
 
@@ -17,7 +17,7 @@
       <input
         type="checkbox"
         id="show-help-message"
-        bind:checked={appSettings.displayHelpMessage}
+        bind:checked={settings.displayHelpMessage}
         on:change={updateDisplayHelpMessage}
       />
       <label for="show-help-message">Show help message in console</label>
