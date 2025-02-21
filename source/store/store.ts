@@ -11,9 +11,10 @@ export const DEFAULT_STATE = {
   principal: {
     principalId: '',
   },
+  approvedDomains: [] as string[],
 };
 
-// Type for the entire store state (explicitly widen literal types)
+// Type for the entire store state
 export type AppState = {
   settings: {
     displayHelpMessage: boolean;
@@ -21,6 +22,7 @@ export type AppState = {
   principal: {
     principalId: string;
   };
+  approvedDomains: string[];
 };
 
 // Create a single writable store
@@ -28,23 +30,22 @@ export const appStore = writable<AppState>(DEFAULT_STATE);
 
 // Storage keys for different data types
 const STORAGE_KEYS = {
-  settings: 'settings',
-  principal: 'ic.computr',
+  settings: 'ic.computr.settings',
+  principal: 'ic.computr.principal',
+  approvedDomains: 'ic.computr.approvedDomains',
 } as const;
 
 // Load all data from storage on initialization
 export async function loadStore() {
   try {
-    // Fetch settings from sync storage
-    const settingsResult = await browser.storage.sync.get({
+    // Fetch all data from local storage
+    const localResult = await browser.storage.local.get({
       [STORAGE_KEYS.settings]: DEFAULT_STATE.settings,
-    });
-    // Fetch principal from local storage
-    const principalResult = await browser.storage.local.get({
       [STORAGE_KEYS.principal]: DEFAULT_STATE.principal,
+      [STORAGE_KEYS.approvedDomains]: DEFAULT_STATE.approvedDomains,
     });
 
-    let principalData = principalResult[STORAGE_KEYS.principal];
+    let principalData = localResult[STORAGE_KEYS.principal];
     // Validate principal
     if (principalData.principalId && !isValidPrincipal(principalData.principalId)) {
       principalData = { principalId: '' };
@@ -53,8 +54,9 @@ export async function loadStore() {
 
     // Combine into a single state
     const newState: AppState = {
-      settings: settingsResult[STORAGE_KEYS.settings],
+      settings: localResult[STORAGE_KEYS.settings],
       principal: principalData,
+      approvedDomains: localResult[STORAGE_KEYS.approvedDomains] || [],
     };
 
     appStore.set(newState);
@@ -85,10 +87,9 @@ export async function updateStore<T extends keyof AppState>(
 
     const newState = { ...current, [section]: updatedSection };
 
-    // Persist to appropriate storage
-    const storage = section === 'settings' ? browser.storage.sync : browser.storage.local;
+    // Persist to local storage (all sections use local now)
     const key = STORAGE_KEYS[section];
-    storage.set({ [key]: updatedSection });
+    browser.storage.local.set({ [key]: updatedSection });
 
     return newState;
   });
@@ -99,6 +100,19 @@ export async function updateStore<T extends keyof AppState>(
 // Delete principal (specific action for principal section)
 export async function deletePrincipal() {
   await updateStore('principal', { principalId: '' });
+}
+
+// Add an approved domain
+export async function addApprovedDomain(domain: string) {
+  appStore.update((current) => {
+    if (current.approvedDomains.includes(domain)) {
+      return current; // No change if already approved
+    }
+    const updatedDomains = [...current.approvedDomains, domain];
+    const newState = { ...current, approvedDomains: updatedDomains };
+    browser.storage.local.set({ [STORAGE_KEYS.approvedDomains]: updatedDomains });
+    return newState;
+  });
 }
 
 // Validate Principal ID

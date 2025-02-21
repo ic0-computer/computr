@@ -142,14 +142,11 @@ export default class Provider implements ProviderInterface {
     await this.sessionManager.disconnect();
   }
 
-  public async requestConnect(
-    args: RequestConnectParams = {}
-  )
-  // : Promise<PublicKey> 
-  {
-    const response = await rpcClient.call("requestConnect", []);
+  public async requestConnect(args: RequestConnectParams = {}) {
+    const origin = window.location.origin;
+    const response = await rpcClient.call("requestConnect", [{ origin }]);
     return response;
-  }
+  }  
 
   public async createAgent({
     whitelist,
