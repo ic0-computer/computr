@@ -13,13 +13,17 @@ let pendingRequests = new Set<string>(); // Tracks active requests
 // Load approved domains from storage on startup
 async function loadApprovedDomains() {
   const storedData = await browser.storage.local.get("ic.computr.approvedDomains");
-  approvedDomains = new Set(storedData["ic.computr.approvedDomains"] || []);
+  const loadedDomains = storedData["ic.computr.approvedDomains"] || [];
+  approvedDomains = new Set(loadedDomains);
+  console.log("Loaded approved domains:", Array.from(approvedDomains));
 }
 loadApprovedDomains();
 
 // Save approved domains to storage
 async function saveApprovedDomains() {
-  await browser.storage.local.set({ "ic.computr.approvedDomains": Array.from(approvedDomains) });
+  const domainsArray = Array.from(approvedDomains);
+  await browser.storage.local.set({ "ic.computr.approvedDomains": domainsArray });
+  console.log("Saved approved domains:", domainsArray);
 }
 
 // Open approval popup
@@ -32,10 +36,14 @@ async function openApprovalPopup(origin: string): Promise<"accepted" | "rejected
       type: "popup",
       width: 400,
       height: 300,
+    }).then((window) => {
+      console.log("Popup window created:", window);
+    }).catch((error) => {
+      console.error("Failed to create popup:", error);
     });
 
-    // Listen for user response
     browser.runtime.onMessage.addListener(function listener(message) {
+      console.log("Received message:", message);
       if (message.type === "requestConnectResponse") {
         browser.runtime.onMessage.removeListener(listener);
         resolve(message.response);
@@ -44,25 +52,23 @@ async function openApprovalPopup(origin: string): Promise<"accepted" | "rejected
   });
 }
 
+// Handle requestConnect
 backgroundController.exposeController("requestConnect", (opts, data) => {
-  const { callback } = opts; // Correctly extract callback
+  const { callback } = opts;
+  const origin = data?.origin;
 
-  console.log("Received opts:", opts);
-  console.log("Received data:", data); // Should log the actual arguments
+  console.log("requestConnect - Data:", data, "Origin:", origin, "Approved domains:", Array.from(approvedDomains));
 
-  const origin = data?.origin || opts.sender?.name || null;
-  
-  if (!origin) {
-    return callback({ code: 4000, message: "Missing origin" }, null);
+  if (!origin || typeof origin !== "string") {
+    return callback({ code: 4000, message: "Missing or invalid origin" }, null);
   }
 
-  // Prevent multiple popups for the same domain
   if (pendingRequests.has(origin)) {
     return callback({ code: 4002, message: "Request already in progress" }, null);
   }
 
-  // If domain is already approved, return success
   if (approvedDomains.has(origin)) {
+    console.log(`${origin} already approved, skipping popup`);
     return callback(null, "Successfully connected!");
   }
 
@@ -72,20 +78,57 @@ backgroundController.exposeController("requestConnect", (opts, data) => {
   openApprovalPopup(origin)
     .then((result) => {
       pendingRequests.delete(origin);
+      console.log(`Popup result for ${origin}:`, result);
 
       if (result === "accepted") {
         approvedDomains.add(origin);
         saveApprovedDomains();
-        return callback(null, "Successfully connected!");
+        callback(null, "Successfully connected!");
       } else {
-        return callback({ code: 4001, message: "User rejected the request" }, null);
+        callback({ code: 4001, message: "User rejected the request" }, null);
       }
     })
     .catch((error) => {
       pendingRequests.delete(origin);
-      return callback({ code: 5000, message: "Unexpected error", data: error }, null);
+      console.error("Popup error:", error);
+      callback({ code: 5000, message: "Unexpected error", data: error }, null);
     });
-    
+});
+
+// Handle isConnected
+backgroundController.exposeController("isConnected", (opts, data) => {
+  const { callback } = opts;
+  const origin = data?.origin;
+
+  console.log("isConnected - Data:", data, "Origin:", origin, "Approved domains:", Array.from(approvedDomains));
+
+  if (!origin || typeof origin !== "string") {
+    return callback({ code: 4000, message: "Missing or invalid origin" }, null);
+  }
+
+  const isConnected = approvedDomains.has(origin);
+  callback(null, isConnected);
+});
+
+// Handle disconnect
+backgroundController.exposeController("disconnect", (opts, data) => {
+  const { callback } = opts;
+  const origin = data?.origin;
+
+  console.log("disconnect - Data:", data, "Origin:", origin, "Approved domains:", Array.from(approvedDomains));
+
+  if (!origin || typeof origin !== "string") {
+    return callback({ code: 4000, message: "Missing or invalid origin" }, null);
+  }
+
+  if (!approvedDomains.has(origin)) {
+    callback(null, "Already disconnected");
+    return;
+  }
+
+  approvedDomains.delete(origin);
+  saveApprovedDomains();
+  callback(null, "Disconnected successfully");
 });
 
 // Start background RPC server

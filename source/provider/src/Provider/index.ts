@@ -35,7 +35,6 @@ import SessionManager from "../modules/SessionManager";
 import { validateCanisterId } from "../utils/account";
 import { bufferToBase64 } from "../utils/communication";
 import WalletConnectRPC from "../utils/wallet-connect-rpc";
-
 import { BrowserRPC } from "@fleekhq/browser-rpc";
 
 const rpcClient = new BrowserRPC(window, {
@@ -55,17 +54,13 @@ export default class Provider implements ProviderInterface {
   private sessionManager: SessionManager;
   private idls: ArgsTypesOfCanister = {};
 
-  static createWithWalletConnect(
-    walletConnectOptions: WalletConnectOptions
-  ): Provider {
+  static createWithWalletConnect(walletConnectOptions: WalletConnectOptions): Provider {
     const walletConnectRPC = new WalletConnectRPC(walletConnectOptions);
     walletConnectRPC.resetSession();
     return new Provider(walletConnectRPC);
   }
 
-  static exposeProviderWithWalletConnect(
-    walletConnectOptions: WalletConnectOptions
-  ) {
+  static exposeProviderWithWalletConnect(walletConnectOptions: WalletConnectOptions) {
     const provider = this.createWithWalletConnect(walletConnectOptions);
 
     const ic = (window as any).ic || {};
@@ -110,10 +105,7 @@ export default class Provider implements ProviderInterface {
     return createActor<T>(agent, canisterId, interfaceFactory);
   }
 
-  // Todo: Add whole getPrincipal flow on main plug repo in case this has been deleted.
-  public async getPrincipal(
-    { asString } = { asString: false }
-  ): Promise<Principal | string> {
+  public async getPrincipal({ asString } = { asString: false }): Promise<Principal | string> {
     const principal = this.principalId;
     if (principal) {
       return asString ? principal.toString() : Principal.from(principal);
@@ -133,37 +125,28 @@ export default class Provider implements ProviderInterface {
 
   // Session management
   public async isConnected(): Promise<boolean> {
-    const connectionData = await this.sessionManager.getConnectionData();
-    const { connection } = connectionData || {};
-    return !!connection;
+    const origin = window.location.origin;
+    const response = await rpcClient.call("isConnected", [{ origin }]);
+    return !!response; // Ensure boolean return
   }
-
+  
   public async disconnect(): Promise<void> {
-    await this.sessionManager.disconnect();
+    const origin = window.location.origin;
+    await rpcClient.call("disconnect", [{ origin }]);
   }
 
   public async requestConnect(args: RequestConnectParams = {}) {
     const origin = window.location.origin;
     const response = await rpcClient.call("requestConnect", [{ origin }]);
     return response;
-  }  
+  }
 
-  public async createAgent({
-    whitelist,
-    host,
-  }: CreateAgentParams = {}): Promise<any> {
-
-    this.agent = await createAgent(
-      this.clientRPC,
-      { whitelist, host },
-      null
-    );
-
+  public async createAgent({ whitelist, host }: CreateAgentParams = {}): Promise<any> {
+    this.agent = await createAgent(this.clientRPC, { whitelist, host }, null);
     return !!this.agent;
   }
 
   public async requestBalance(accountId = null): Promise<bigint> {
-
     const balances = await this.clientRPC.call({
       handler: "requestBalance",
       args: [accountId],
@@ -176,30 +159,14 @@ export default class Provider implements ProviderInterface {
   }
 
   public async requestTransfer(params: RequestTransferParams): Promise<bigint> {
-
     return await this.clientRPC.call({
       handler: "requestTransfer",
       args: [params],
     });
   }
 
-  // public async requestTransferToken(
-  //   params: RequestTransTokenferParams
-  // ): Promise<string> {
-
-  //   return await this.clientRPC.call({
-  //     handler: "requestTransferToken",
-  //     args: [metadata, params],
-  //   });
-  // }
-
-  public async batchTransactions(
-    transactions: Transaction[]
-  ): Promise<boolean> {
-
-    const canisterList = transactions.map(
-      (transaction) => transaction.canisterId
-    );
+  public async batchTransactions(transactions: Transaction[]): Promise<boolean> {
+    const canisterList = transactions.map((transaction) => transaction.canisterId);
     const connectionData = await this.sessionManager.getConnectionData();
 
     const sender = (await this.getPrincipal({ asString: true })) as string;
@@ -234,11 +201,7 @@ export default class Provider implements ProviderInterface {
     let prevTransactionsData: TransactionPrevResponse[] = [];
 
     for await (const transaction of transactions) {
-      const actor = await createActor(
-        agent,
-        transaction.canisterId,
-        transaction.idl
-      );
+      const actor = await createActor(agent, transaction.canisterId, transaction.idl);
       const method = actor[transaction.methodName];
       try {
         let response: any;
@@ -283,7 +246,6 @@ export default class Provider implements ProviderInterface {
   }
 
   public async getICNSInfo(): Promise<ICNSInfo> {
-
     return await this.clientRPC.call({
       handler: "getICNSInfo",
       args: [],
@@ -291,7 +253,6 @@ export default class Provider implements ProviderInterface {
   }
 
   public async requestBurnXTC(params: RequestBurnXTCParams): Promise<any> {
-
     return await this.clientRPC.call({
       handler: "requestBurnXTC",
       args: [params],
@@ -313,10 +274,7 @@ export default class Provider implements ProviderInterface {
     });
   }
 
-  public async requestImportToken(
-    params: RequestImportTokenParams
-  ): Promise<any> {
-
+  public async requestImportToken(params: RequestImportTokenParams): Promise<any> {
     return await this.clientRPC.call({
       handler: "requestImportToken",
       args: [params],
@@ -345,8 +303,7 @@ export default class Provider implements ProviderInterface {
       handler: "requestSignMessage",
       args: [messageToSign],
     });
-    console.log(response)
+    console.log(response);
     return response;
-
   }
 }
