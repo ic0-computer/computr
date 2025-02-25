@@ -1,3 +1,4 @@
+// source/provider/src/Provider/index.ts
 import { Agent, Actor, ActorSubclass, PublicKey } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import { Buffer } from "buffer";
@@ -47,12 +48,17 @@ rpcClient.start();
 
 export default class Provider implements ProviderInterface {
   public agent?: Agent;
-  public versions: ProviderInterfaceVersions;
-  public principalId?: string;
+  public versions: ProviderInterfaceVersions = versions;
+  private _principalId?: string;
   public accountId?: string;
+  public isWalletLocked: boolean = false;
   private clientRPC: RPCManager;
   private sessionManager: SessionManager;
   private idls: ArgsTypesOfCanister = {};
+
+  public get principalId(): string | undefined {
+    return this._principalId;
+  }
 
   static createWithWalletConnect(walletConnectOptions: WalletConnectOptions): Provider {
     const walletConnectRPC = new WalletConnectRPC(walletConnectOptions);
@@ -60,8 +66,16 @@ export default class Provider implements ProviderInterface {
     return new Provider(walletConnectRPC);
   }
 
-  static exposeProviderWithWalletConnect(walletConnectOptions: WalletConnectOptions) {
+  static async exposeProviderWithWalletConnect(walletConnectOptions: WalletConnectOptions) {
     const provider = this.createWithWalletConnect(walletConnectOptions);
+
+    // Fetch principalId early, regardless of connection status
+    try {
+      const principal = await provider.getPrincipal({ asString: true });
+      console.log("Initialized principalId:", provider.principalId, "Principal:", principal);
+    } catch (error) {
+      console.error("Failed to initialize principalId:", error);
+    }
 
     const ic = (window as any).ic || {};
     (window as any).ic = {
@@ -79,9 +93,10 @@ export default class Provider implements ProviderInterface {
   public async init() {
     const connectionData = await this.sessionManager.init();
     const { sessionData } = connectionData || {};
+    this.isWalletLocked = false;
     if (sessionData) {
       this.agent = sessionData?.agent;
-      this.principalId = sessionData?.principalId;
+      this._principalId = sessionData?.principalId;
       this.accountId = sessionData?.accountId;
     }
     this.hookToWindowEvents();
@@ -105,29 +120,39 @@ export default class Provider implements ProviderInterface {
     return createActor<T>(agent, canisterId, interfaceFactory);
   }
 
-  public async getPrincipal({ asString } = { asString: false }): Promise<Principal | string> {
-    const principal = this.principalId;
-    if (principal) {
-      return asString ? principal.toString() : Principal.from(principal);
-    } else {
-      const response = await this.clientRPC.call({
-        handler: "getPrincipal",
-        args: [],
-      });
-
-      if (response && asString) {
-        return response.toString();
+  public async getPrincipal({ asString } = { asString: false }): Promise<Principal | string | null> {
+    if (this._principalId) {
+      const isConnected = await this.isConnected();
+      if (!isConnected) {
+        console.log("Domain not connected, returning null for principalId");
+        return null;
       }
-
-      return Principal.from(response);
+      return asString ? this._principalId : Principal.from(this._principalId);
     }
+
+    const origin = window.location.origin;
+    const isConnected = await this.isConnected();
+    if (!isConnected) {
+      console.log("Domain not connected, returning null for principalId");
+      return null;
+    }
+
+    const response = await rpcClient.call("getPrincipal", [{ origin }]);
+    if (!response) {
+      console.log("No principalId found in storage, returning null");
+      this._principalId = undefined;
+      return null;
+    }
+
+    this._principalId = response;
+    console.log("Fetched and cached principalId:", this._principalId);
+    return asString ? response : Principal.from(response);
   }
 
-  // Session management
   public async isConnected(): Promise<boolean> {
     const origin = window.location.origin;
     const response = await rpcClient.call("isConnected", [{ origin }]);
-    return !!response; // Ensure boolean return
+    return !!response;
   }
   
   public async disconnect(): Promise<void> {
@@ -289,7 +314,7 @@ export default class Provider implements ProviderInterface {
         const { sessionData } = connectionData || {};
         if (sessionData) {
           this.agent = sessionData?.agent;
-          this.principalId = sessionData?.principalId;
+          this._principalId = sessionData?.principalId;
           this.accountId = sessionData?.accountId;
         }
       },

@@ -1,3 +1,4 @@
+// source/background/background.ts
 import { BackgroundController } from "@fleekhq/browser-rpc";
 import browser from "webextension-polyfill";
 
@@ -8,7 +9,7 @@ const backgroundController = new BackgroundController({
 
 // Store of approved domains (cached in memory)
 let approvedDomains = new Set<string>();
-let pendingRequests = new Set<string>(); // Tracks active requests
+let pendingRequests = new Set<string>();
 
 // Load approved domains from storage on startup
 async function loadApprovedDomains() {
@@ -129,6 +130,34 @@ backgroundController.exposeController("disconnect", (opts, data) => {
   approvedDomains.delete(origin);
   saveApprovedDomains();
   callback(null, "Disconnected successfully");
+});
+
+// Handle getPrincipal
+backgroundController.exposeController("getPrincipal", async (opts, data) => {
+  const { callback } = opts;
+  const origin = data?.origin;
+
+  console.log("getPrincipal - Data:", data, "Origin:", origin, "Approved domains:", Array.from(approvedDomains));
+
+  try {
+    if (origin && !approvedDomains.has(origin)) {
+      console.log("Domain not approved for principal access:", origin);
+      callback(null, null); // Return null if not approved
+      return;
+    }
+
+    const storedData = await browser.storage.local.get("ic.computr.principal");
+    console.log("Raw stored data:", storedData);
+    const principalData = storedData["ic.computr.principal"] || { principalId: null };
+    const principalId = principalData.principalId;
+
+    console.log("getPrincipal - Retrieved principalId:", principalId);
+
+    callback(null, principalId); // Return principalId or null
+  } catch (error) {
+    console.error("Error fetching principal:", error);
+    callback({ code: 5000, message: "Failed to fetch principal", data: error }, null);
+  }
 });
 
 // Start background RPC server

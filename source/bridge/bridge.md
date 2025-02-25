@@ -34,7 +34,7 @@ The following flow ensures secure message passing:
 
 2. **Content script listens for `requestConnect` and forwards it to the background script.**  
    ```ts
-   import { createRouter } from "@psychedelic/browser-rpc";
+   import { createRouter } from "@fleekhq/browser-rpc";
 
    const router = createRouter({ target: window, receiver: window });
 

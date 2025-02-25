@@ -1,8 +1,8 @@
+// source/provider/src/Provider/interfaces.ts
 import { Agent, HttpAgent, ActorSubclass } from "@dfinity/agent";
 import { IDL } from "@dfinity/candid";
 import { Principal } from "@dfinity/principal";
 import { ConnectionData } from "../modules/SessionManager";
-
 import { CreateAgentParams } from "../utils/agent";
 
 export interface TransactionPrevResponse {
@@ -35,14 +35,12 @@ export interface SendOpts {
   created_at_time?: TimeStamp;
 }
 
-// The amount in e8s (ICPs)
 export interface RequestTransferParams {
   to: string;
   amount: bigint;
   opts?: SendOpts;
 }
 
-// Fee and Memo is a bigint casted to string
 export interface SendOptsToken {
   fee?: string;
   memo?: string;
@@ -50,7 +48,6 @@ export interface SendOptsToken {
   created_at_time?: TimeStamp;
 }
 
-// The amount is a string with comma
 export interface RequestTransTokenferParams {
   to: string;
   strAmount: string;
@@ -92,7 +89,6 @@ export interface ICNSInfo {
 }
 
 export interface ProviderInterface {
-  // Hi(): Promise<string>;
   isConnected(): Promise<boolean>;
   disconnect(): Promise<void>;
   batchTransactions(transactions: Transaction[]): Promise<boolean>;
@@ -106,10 +102,10 @@ export interface ProviderInterface {
   createAgent(params: CreateAgentParams): Promise<boolean>;
   requestBurnXTC(params: RequestBurnXTCParams): Promise<any>;
   requestImportToken(params: RequestImportTokenParams): Promise<any>;
-  getPrincipal: () => Promise<Principal | string>;
+  getPrincipal({ asString }?: { asString?: boolean }): Promise<Principal | string | null>;
   versions: ProviderInterfaceVersions;
   agent?: Agent | null;
-  principal?: string;
+  principalId: string | undefined;
   accountId?: string;
   getICNSInfo: () => Promise<ICNSInfo>;
   signMessage: (message: ArrayBuffer | Buffer | ArrayBuffer) => Promise<ArrayBuffer>;
