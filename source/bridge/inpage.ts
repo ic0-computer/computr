@@ -1,32 +1,48 @@
+// source/bridge/inpage.ts
 import { BrowserRPC } from '@fleekhq/browser-rpc';
 import { Provider } from '../provider/src/index';
 
-// Extend the Window type to include `ic`
 declare global {
   interface Window {
-    ic: any; // Adjust the type of `ic` if you know its structure
+    ic: any;
   }
 }
 
-// Step 1: Initialize BrowserRPC for communication with the content script
 const clientRPC = new BrowserRPC(window, {
   name: 'computr-provider',
   target: 'computr-content-script',
-  timeout: 20000, // Adjust based on your needs
+  timeout: 20000,
 });
 clientRPC.start();
 
-// Step 2: Initialize the provider (acting as a bridge)
-const provider = new Provider(clientRPC);
-provider.init();
+async function setupProvider() {
+  const provider = new Provider(clientRPC);
+  await provider.init();
 
-// Step 4: Attach the provider to `window.ic` so the webpage can access it
-const ic = window.ic || {};
-window.ic = {
-  ...ic,
-  computr: provider, // Unique namespace for your extension
-};
+  try {
+    const isConnected = await provider.isConnected();
+    if (isConnected) {
+      await provider.getPrincipal({ asString: true });
+      console.log('✅ Principal ID and Account ID fetched on initialization:', {
+        principalId: provider.principalId,
+        accountId: provider.accountId,
+      });
+    } else {
+      console.log('Domain not yet connected, principalId and accountId remain undefined');
+    }
+  } catch (error) {
+    console.error('Error fetching principalId and accountId on initialization:', error);
+  }
 
-console.log('✅ inpage.js injected and initialized!', window.ic);
+  const ic = window.ic || {};
+  window.ic = {
+    ...ic,
+    computr: provider,
+  };
 
-export default provider;
+  console.log('✅ inpage.js injected and initialized!', window.ic);
+  return provider;
+}
+
+const providerPromise = setupProvider();
+export default providerPromise;

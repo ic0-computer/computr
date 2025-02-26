@@ -106,7 +106,7 @@ export interface ProviderInterface {
   versions: ProviderInterfaceVersions;
   agent?: Agent | null;
   principalId: string | undefined;
-  accountId?: string;
+  accountId: string | undefined; // Added as property
   getICNSInfo: () => Promise<ICNSInfo>;
   signMessage: (message: ArrayBuffer | Buffer | ArrayBuffer) => Promise<ArrayBuffer>;
 }

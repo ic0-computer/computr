@@ -2,6 +2,7 @@
 import { Agent, Actor, ActorSubclass, PublicKey } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import { Buffer } from "buffer";
+import { AccountIdentifier } from "@dfinity/ledger-icp";
 
 import {
   managementCanisterIdlFactory,
@@ -50,14 +51,20 @@ export default class Provider implements ProviderInterface {
   public agent?: Agent;
   public versions: ProviderInterfaceVersions = versions;
   private _principalId?: string;
-  public accountId?: string;
+  private _accountId?: string; // Private backing field for accountId
   public isWalletLocked: boolean = false;
   private clientRPC: RPCManager;
   private sessionManager: SessionManager;
   private idls: ArgsTypesOfCanister = {};
 
+  // Getter for principalId
   public get principalId(): string | undefined {
     return this._principalId;
+  }
+
+  // Getter for accountId
+  public get accountId(): string | undefined {
+    return this._accountId;
   }
 
   static createWithWalletConnect(walletConnectOptions: WalletConnectOptions): Provider {
@@ -69,18 +76,24 @@ export default class Provider implements ProviderInterface {
   static async exposeProviderWithWalletConnect(walletConnectOptions: WalletConnectOptions) {
     const provider = this.createWithWalletConnect(walletConnectOptions);
 
-    // Fetch principalId early, regardless of connection status
+    // Fetch principalId and accountId early if domain is approved
     try {
-      const principal = await provider.getPrincipal({ asString: true });
-      console.log("Initialized principalId:", provider.principalId, "Principal:", principal);
+      const isConnected = await provider.isConnected();
+      console.log("Domain connected during init:", isConnected);
+      if (isConnected) {
+        await provider.getPrincipal({ asString: true });
+        console.log("Initialized principalId:", provider.principalId, "accountId:", provider.accountId);
+      } else {
+        console.log("Domain not connected, principalId and accountId remain undefined");
+      }
     } catch (error) {
-      console.error("Failed to initialize principalId:", error);
+      console.error("Failed to initialize principalId and accountId:", error);
     }
 
     const ic = (window as any).ic || {};
     (window as any).ic = {
       ...ic,
-      plug: provider,
+      computr: provider,
     };
   }
 
@@ -97,9 +110,76 @@ export default class Provider implements ProviderInterface {
     if (sessionData) {
       this.agent = sessionData?.agent;
       this._principalId = sessionData?.principalId;
-      this.accountId = sessionData?.accountId;
+      if (this._principalId) {
+        this._accountId = AccountIdentifier.fromPrincipal({ principal: Principal.fromText(this._principalId) }).toHex();
+      }
+      // Use sessionData.accountId if provided, otherwise keep computed value
+      this._accountId = sessionData?.accountId || this._accountId;
     }
     this.hookToWindowEvents();
+  }
+
+  public async getPrincipal({ asString } = { asString: false }): Promise<Principal | string | null> {
+    if (this._principalId) {
+      const isConnected = await this.isConnected();
+      if (!isConnected) {
+        console.log("Domain not connected, returning null for principalId");
+        return null;
+      }
+      if (!this._accountId && this._principalId) {
+        this._accountId = AccountIdentifier.fromPrincipal({ principal: Principal.fromText(this._principalId) }).toHex();
+      }
+      return asString ? this._principalId : Principal.from(this._principalId);
+    }
+
+    const origin = window.location.origin;
+    const isConnected = await this.isConnected();
+    if (!isConnected) {
+      console.log("Domain not connected, returning null for principalId");
+      return null;
+    }
+
+    const response = await rpcClient.call("getPrincipal", [{ origin }]);
+    if (!response) {
+      console.log("No principalId found in storage, returning null");
+      this._principalId = undefined;
+      this._accountId = undefined;
+      return null;
+    }
+
+    this._principalId = response;
+    this._accountId = AccountIdentifier.fromPrincipal({ principal: Principal.fromText(response) }).toHex();
+    console.log("Fetched and cached principalId:", this._principalId, "accountId:", this._accountId);
+    return asString ? response : Principal.from(response);
+  }
+
+  public async isConnected(): Promise<boolean> {
+    const origin = window.location.origin;
+    const response = await rpcClient.call("isConnected", [{ origin }]);
+    return !!response;
+  }
+
+  public async requestConnect(args: RequestConnectParams = {}) {
+    const origin = window.location.origin;
+    const response = await rpcClient.call("requestConnect", [{ origin }]);
+    if (response === "Successfully connected!") {
+      // Fetch principalId and compute accountId after successful connection
+      try {
+        const principal = await this.getPrincipal({ asString: true });
+        console.log("Fetched principalId after requestConnect:", principal, "accountId:", this._accountId);
+      } catch (error) {
+        console.error("Failed to fetch principalId after requestConnect:", error);
+      }
+    }
+    return response;
+  }
+
+  public async disconnect(): Promise<void> {
+    const origin = window.location.origin;
+    await rpcClient.call("disconnect", [{ origin }]);
+    this._principalId = undefined;
+    this._accountId = undefined; // Clear accountId on disconnect
+    console.log("Disconnected, principalId and accountId cleared");
   }
 
   public async createActor<T>({
@@ -118,52 +198,6 @@ export default class Provider implements ProviderInterface {
       getArgTypes(interfaceFactory)
     );
     return createActor<T>(agent, canisterId, interfaceFactory);
-  }
-
-  public async getPrincipal({ asString } = { asString: false }): Promise<Principal | string | null> {
-    if (this._principalId) {
-      const isConnected = await this.isConnected();
-      if (!isConnected) {
-        console.log("Domain not connected, returning null for principalId");
-        return null;
-      }
-      return asString ? this._principalId : Principal.from(this._principalId);
-    }
-
-    const origin = window.location.origin;
-    const isConnected = await this.isConnected();
-    if (!isConnected) {
-      console.log("Domain not connected, returning null for principalId");
-      return null;
-    }
-
-    const response = await rpcClient.call("getPrincipal", [{ origin }]);
-    if (!response) {
-      console.log("No principalId found in storage, returning null");
-      this._principalId = undefined;
-      return null;
-    }
-
-    this._principalId = response;
-    console.log("Fetched and cached principalId:", this._principalId);
-    return asString ? response : Principal.from(response);
-  }
-
-  public async isConnected(): Promise<boolean> {
-    const origin = window.location.origin;
-    const response = await rpcClient.call("isConnected", [{ origin }]);
-    return !!response;
-  }
-  
-  public async disconnect(): Promise<void> {
-    const origin = window.location.origin;
-    await rpcClient.call("disconnect", [{ origin }]);
-  }
-
-  public async requestConnect(args: RequestConnectParams = {}) {
-    const origin = window.location.origin;
-    const response = await rpcClient.call("requestConnect", [{ origin }]);
-    return response;
   }
 
   public async createAgent({ whitelist, host }: CreateAgentParams = {}): Promise<any> {
@@ -315,7 +349,11 @@ export default class Provider implements ProviderInterface {
         if (sessionData) {
           this.agent = sessionData?.agent;
           this._principalId = sessionData?.principalId;
-          this.accountId = sessionData?.accountId;
+          if (this._principalId) {
+            this._accountId = AccountIdentifier.fromPrincipal({ principal: Principal.fromText(this._principalId) }).toHex();
+          }
+          // Use sessionData.accountId if provided, otherwise keep computed value
+          this._accountId = sessionData?.accountId || this._accountId;
         }
       },
       false
