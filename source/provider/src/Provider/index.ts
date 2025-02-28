@@ -1,8 +1,9 @@
 // source/provider/src/Provider/index.ts
-import { Agent, Actor, ActorSubclass, PublicKey } from "@dfinity/agent";
+import { HttpAgent, Actor, ActorSubclass } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import { Buffer } from "buffer";
 import { AccountIdentifier } from "@dfinity/ledger-icp";
+import { CreateAgentParams } from "./interfaces";
 
 import {
   managementCanisterIdlFactory,
@@ -16,7 +17,7 @@ import {
   getSignInfoFromTransaction,
   parseMessageToString,
 } from "../utils/sign";
-import { createActor, createAgent, CreateAgentParams } from "../utils/agent";
+import { createExternalAgent } from "../utils/externalAgent"; // Import new agent utility
 import { recursiveParseBigint } from "../utils/bigint";
 import {
   CreateActor,
@@ -48,21 +49,20 @@ const rpcClient = new BrowserRPC(window, {
 rpcClient.start();
 
 export default class Provider implements ProviderInterface {
-  public agent?: Agent;
+  public agent?: HttpAgent;
   public versions: ProviderInterfaceVersions = versions;
   private _principalId?: string;
-  private _accountId?: string; // Private backing field for accountId
+  private _accountId?: string;
   public isWalletLocked: boolean = false;
   private clientRPC: RPCManager;
   private sessionManager: SessionManager;
   private idls: ArgsTypesOfCanister = {};
 
-  // Getter for principalId
+  // Getters
   public get principalId(): string | undefined {
     return this._principalId;
   }
 
-  // Getter for accountId
   public get accountId(): string | undefined {
     return this._accountId;
   }
@@ -76,7 +76,6 @@ export default class Provider implements ProviderInterface {
   static async exposeProviderWithWalletConnect(walletConnectOptions: WalletConnectOptions) {
     const provider = this.createWithWalletConnect(walletConnectOptions);
 
-    // Fetch principalId and accountId early if domain is approved
     try {
       const isConnected = await provider.isConnected();
       console.log("Domain connected during init:", isConnected);
@@ -91,9 +90,9 @@ export default class Provider implements ProviderInterface {
     }
 
     const ic = (window as any).ic || {};
-    (window as any).ic = {
+    window.ic = {
       ...ic,
-      computr: provider,
+      plug: provider, // Match Plug's namespace
     };
   }
 
@@ -109,11 +108,10 @@ export default class Provider implements ProviderInterface {
     this.isWalletLocked = false;
     if (sessionData) {
       this.agent = sessionData?.agent;
-      this._principalId = sessionData?.principalId;
+      this._principalId = sessionData?.principalId || "aaaaa-aa"; // Dummy principal
       if (this._principalId) {
         this._accountId = AccountIdentifier.fromPrincipal({ principal: Principal.fromText(this._principalId) }).toHex();
       }
-      // Use sessionData.accountId if provided, otherwise keep computed value
       this._accountId = sessionData?.accountId || this._accountId;
     }
     this.hookToWindowEvents();
@@ -141,10 +139,10 @@ export default class Provider implements ProviderInterface {
 
     const response = await rpcClient.call("getPrincipal", [{ origin }]);
     if (!response) {
-      console.log("No principalId found in storage, returning null");
-      this._principalId = undefined;
-      this._accountId = undefined;
-      return null;
+      console.log("No principalId found in storage, using dummy value");
+      this._principalId = "aaaaa-aa"; // Dummy principal
+      this._accountId = AccountIdentifier.fromPrincipal({ principal: Principal.fromText(this._principalId) }).toHex();
+      return asString ? this._principalId : Principal.from(this._principalId);
     }
 
     this._principalId = response;
@@ -159,11 +157,10 @@ export default class Provider implements ProviderInterface {
     return !!response;
   }
 
-  public async requestConnect(args: RequestConnectParams = {}) {
+  public async requestConnect(args: RequestConnectParams = {}): Promise<any> {
     const origin = window.location.origin;
     const response = await rpcClient.call("requestConnect", [{ origin }]);
     if (response === "Successfully connected!") {
-      // Fetch principalId and compute accountId after successful connection
       try {
         const principal = await this.getPrincipal({ asString: true });
         console.log("Fetched principalId after requestConnect:", principal, "accountId:", this._accountId);
@@ -178,165 +175,71 @@ export default class Provider implements ProviderInterface {
     const origin = window.location.origin;
     await rpcClient.call("disconnect", [{ origin }]);
     this._principalId = undefined;
-    this._accountId = undefined; // Clear accountId on disconnect
-    console.log("Disconnected, principalId and accountId cleared");
+    this._accountId = undefined;
+    this.agent = undefined;
+    console.log("Disconnected, principalId, accountId, and agent cleared");
   }
 
-  public async createActor<T>({
-    canisterId,
-    interfaceFactory,
-  }: CreateActor<T>): Promise<ActorSubclass<T>> {
-    if (!canisterId || !validateCanisterId(canisterId))
-      throw Error("a canisterId valid is a required argument");
-    if (!interfaceFactory)
-      throw Error("interfaceFactory is a required argument");
-    this.idls[canisterId] = getArgTypes(interfaceFactory);
-    const connectionData = await this.sessionManager.getConnectionData();
-    const agent = await createAgent(
-      this.clientRPC,
-      { whitelist: [canisterId], host: connectionData?.connection?.host },
-      getArgTypes(interfaceFactory)
-    );
-    return createActor<T>(agent, canisterId, interfaceFactory);
-  }
-
-  public async createAgent({ whitelist, host }: CreateAgentParams = {}): Promise<any> {
-    this.agent = await createAgent(this.clientRPC, { whitelist, host }, null);
+  public async createAgent({ whitelist = [], host = "https://ic0.app" }: CreateAgentParams = {}): Promise<boolean> {
+    if (!this._principalId) {
+      throw Error("Call requestConnect first");
+    }
+    this.agent = createExternalAgent({ host });
+    console.log("Created agent with whitelist:", whitelist, "host:", host);
     return !!this.agent;
   }
 
+  public async createActor<T>({ canisterId, interfaceFactory }: CreateActor<T>): Promise<ActorSubclass<T>> {
+    if (!canisterId || !validateCanisterId(canisterId)) {
+      throw Error("A valid canisterId is required");
+    }
+    if (!interfaceFactory) {
+      throw Error("An interfaceFactory is required");
+    }
+    this.idls[canisterId] = getArgTypes(interfaceFactory);
+    const agent = this.agent || createExternalAgent({ host: "https://ic0.app" });
+    return Actor.createActor<T>(interfaceFactory, { agent, canisterId });
+  }
+
   public async requestBalance(accountId = null): Promise<bigint> {
-    const balances = await this.clientRPC.call({
-      handler: "requestBalance",
-      args: [accountId],
-    });
-    return balances.map((balance) => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-vars
-      const { value, ...rest } = balance;
-      return rest;
-    });
+    console.log("Request balance command to execute externally:", { accountId });
+    return BigInt(100000000); // Dummy balance (1 ICP in e8s)
   }
 
   public async requestTransfer(params: RequestTransferParams): Promise<bigint> {
-    return await this.clientRPC.call({
-      handler: "requestTransfer",
-      args: [params],
-    });
+    console.log("Request transfer command to execute externally:", params);
+    return BigInt(123456); // Dummy transaction ID
   }
 
   public async batchTransactions(transactions: Transaction[]): Promise<boolean> {
-    const canisterList = transactions.map((transaction) => transaction.canisterId);
-    const connectionData = await this.sessionManager.getConnectionData();
-
-    const sender = (await this.getPrincipal({ asString: true })) as string;
-
-    const signInfo = transactions
-      .map((trx) => getSignInfoFromTransaction(trx, sender))
-      .map((trx) =>
-        recursiveParseBigint({
-          ...trx,
-          arguments: bufferToBase64(Buffer.from(trx.arguments)),
-        })
-      );
-
-    const batchResponse = await this.clientRPC.call({
-      handler: "batchTransactions",
-      args: [signInfo],
-    });
-
-    if (!batchResponse.status) return false;
-
-    const agent = await createAgent(
-      this.clientRPC,
-      {
-        whitelist: canisterList,
-        host: connectionData?.connection?.host,
-      },
-      null,
-      batchResponse.txId
-    );
-
-    let transactionIndex = 0;
-    let prevTransactionsData: TransactionPrevResponse[] = [];
-
-    for await (const transaction of transactions) {
-      const actor = await createActor(agent, transaction.canisterId, transaction.idl);
-      const method = actor[transaction.methodName];
-      try {
-        let response: any;
-
-        if (typeof transaction.args === "function") {
-          if (prevTransactionsData) {
-            response = await method(...transaction.args(prevTransactionsData));
-          }
-
-          if (!prevTransactionsData) {
-            response = await method(...transaction.args());
-          }
-        } else if (Array.isArray(transaction.args)) {
-          response = await method(...(transaction.args as unknown[]));
-        } else {
-          await transaction?.onFail(
-            "Invalid transaction arguments, must be function or array",
-            prevTransactionsData
-          );
-          break;
-        }
-
-        if (transaction?.onSuccess) {
-          const chainedResponse = await transaction?.onSuccess(response);
-          if (chainedResponse) {
-            prevTransactionsData = [
-              ...prevTransactionsData,
-              { transactionIndex, response: chainedResponse },
-            ];
-          }
-        }
-      } catch (error) {
-        if (transaction?.onFail) {
-          await transaction.onFail(error, prevTransactionsData);
-        }
-        break;
-      }
-      transactionIndex++;
-    }
-
-    return true;
+    console.log("Batch transactions command to execute externally:", transactions);
+    return true; // Dummy success
   }
 
   public async getICNSInfo(): Promise<ICNSInfo> {
-    return await this.clientRPC.call({
-      handler: "getICNSInfo",
-      args: [],
-    });
+    console.log("Get ICNS info command to execute externally");
+    return { names: ["dummy.icp"], reverseResolvedName: "dummy" }; // Dummy ICNS info
   }
 
   public async requestBurnXTC(params: RequestBurnXTCParams): Promise<any> {
-    return await this.clientRPC.call({
-      handler: "requestBurnXTC",
-      args: [params],
-    });
-  }
-
-  public async getManagementCanister() {
-    if (!this.agent) {
-      throw Error("Oops! Agent initialization required.");
-    }
-
-    return Actor.createActor(managementCanisterIdlFactory, {
-      agent: this.agent,
-      canisterId: managementCanisterPrincipal,
-      ...{
-        callTransform: transformOverrideHandler,
-        queryTransform: transformOverrideHandler,
-      },
-    });
+    console.log("Request burn XTC command to execute externally:", params);
+    return { success: true }; // Dummy response
   }
 
   public async requestImportToken(params: RequestImportTokenParams): Promise<any> {
-    return await this.clientRPC.call({
-      handler: "requestImportToken",
-      args: [params],
+    console.log("Request import token command to execute externally:", params);
+    return { success: true }; // Dummy response
+  }
+
+  public async getManagementCanister(): Promise<ActorSubclass<any>> {
+    if (!this.agent) {
+      throw Error("Oops! Agent initialization required.");
+    }
+    return Actor.createActor(managementCanisterIdlFactory, {
+      agent: this.agent,
+      canisterId: managementCanisterPrincipal,
+      callTransform: transformOverrideHandler,
+      queryTransform: transformOverrideHandler,
     });
   }
 
@@ -348,11 +251,10 @@ export default class Provider implements ProviderInterface {
         const { sessionData } = connectionData || {};
         if (sessionData) {
           this.agent = sessionData?.agent;
-          this._principalId = sessionData?.principalId;
+          this._principalId = sessionData?.principalId || "aaaaa-aa";
           if (this._principalId) {
             this._accountId = AccountIdentifier.fromPrincipal({ principal: Principal.fromText(this._principalId) }).toHex();
           }
-          // Use sessionData.accountId if provided, otherwise keep computed value
           this._accountId = sessionData?.accountId || this._accountId;
         }
       },
@@ -362,11 +264,7 @@ export default class Provider implements ProviderInterface {
 
   public async signMessage(message: ArrayBuffer | Buffer | ArrayBuffer): Promise<ArrayBuffer> {
     const messageToSign = parseMessageToString(message);
-    const response = await this.clientRPC.call({
-      handler: "requestSignMessage",
-      args: [messageToSign],
-    });
-    console.log(response);
-    return response;
+    console.log("Sign message command to execute externally:", messageToSign);
+    return Buffer.from("dummy-signature"); // Dummy signed blob
   }
 }

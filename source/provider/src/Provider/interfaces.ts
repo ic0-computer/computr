@@ -3,7 +3,11 @@ import { Agent, HttpAgent, ActorSubclass } from "@dfinity/agent";
 import { IDL } from "@dfinity/candid";
 import { Principal } from "@dfinity/principal";
 import { ConnectionData } from "../modules/SessionManager";
-import { CreateAgentParams } from "../utils/agent";
+
+export interface CreateAgentParams {
+  whitelist?: string[];
+  host?: string;
+}
 
 export interface TransactionPrevResponse {
   transactionIndex: number;
