@@ -2,6 +2,7 @@
 import { HttpAgent, HttpAgentOptions, Identity, ApiQueryResponse, SubmitResponse, ReadStateResponse } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import { Buffer } from "buffer";
+import { rpcClient } from "../Provider";
 
 export class ExternalSignAgent extends HttpAgent {
   constructor(options: HttpAgentOptions = {}) {
@@ -14,31 +15,28 @@ export class ExternalSignAgent extends HttpAgent {
     fields: { methodName: string; arg: ArrayBuffer },
     identity?: Identity | Promise<Identity>
   ): Promise<ApiQueryResponse> {
-    console.log("Query command to execute externally:", {
+    const commandDetails = {
       canisterId: canisterId.toString(),
       methodName: fields.methodName,
       arg: Buffer.from(fields.arg).toString("base64"),
-    });
-    // Dummy Candid-encoded response for icrc1_symbol returning "ICP"
-    // DIDL (magic number) + type (text) + length (3) + "ICP" bytes
-    const dummyArg = Buffer.from([
-      0x44, 0x49, 0x44, 0x4C, // DIDL magic number
-      0x00,                   // No additional types
-      0x01,                   // One value
-      0x71,                   // Text type (0x71)
-      0x03,                   // Length of "ICP" (3 bytes)
-      0x49, 0x43, 0x50,       // UTF-8 bytes for "ICP"
-    ]);
+    };
+    console.log("Query command to execute externally:", commandDetails);
+
+    // Request signing via RPC
+    const signedResponse = await rpcClient.call("signQuery", [commandDetails]);
+
+    // Assume signedResponse is a base64-encoded Candid buffer
+    const responseArg = Buffer.from(signedResponse, "base64");
     return {
       status: "replied" as any,
-      reply: { arg: dummyArg },
+      reply: { arg: responseArg },
       httpDetails: {
         ok: true,
         status: 200,
         statusText: "OK",
         headers: [],
       },
-      requestId: Buffer.from("dummy-request-id") as any, // Cast for RequestId branding
+      requestId: Buffer.from("dummy-request-id") as any,
     };
   }
 

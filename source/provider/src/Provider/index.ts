@@ -1,5 +1,6 @@
 // source/provider/src/Provider/index.ts
 import { HttpAgent, Actor, ActorSubclass } from "@dfinity/agent";
+import {  } from "@dfinity/candid";
 import { Principal } from "@dfinity/principal";
 import { Buffer } from "buffer";
 import { AccountIdentifier } from "@dfinity/ledger-icp";
@@ -14,11 +15,9 @@ import { versions } from "../constants";
 import {
   getArgTypes,
   ArgsTypesOfCanister,
-  getSignInfoFromTransaction,
   parseMessageToString,
 } from "../utils/sign";
 import { createExternalAgent } from "../utils/externalAgent"; // Import new agent utility
-import { recursiveParseBigint } from "../utils/bigint";
 import {
   CreateActor,
   ICNSInfo,
@@ -30,20 +29,18 @@ import {
   RequestTransferParams,
   SimplifiedRPC,
   Transaction,
-  TransactionPrevResponse,
   WalletConnectOptions,
 } from "./interfaces";
 import RPCManager from "../modules/RPCManager";
 import SessionManager from "../modules/SessionManager";
 import { validateCanisterId } from "../utils/account";
-import { bufferToBase64 } from "../utils/communication";
 import WalletConnectRPC from "../utils/wallet-connect-rpc";
 import { BrowserRPC } from "@fleekhq/browser-rpc";
 
-const rpcClient = new BrowserRPC(window, {
+export const rpcClient = new BrowserRPC(window, {
   name: "computr-provider",
   target: "computr-content-script",
-  timeout: 10000,
+  timeout: 0,
 });
 
 rpcClient.start();

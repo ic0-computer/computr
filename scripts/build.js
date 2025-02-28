@@ -70,6 +70,18 @@ async function main() {
       ],
     });
 
+    const signingPopupJob = build({
+      ...commonConfig,
+      entryPoints: ["./source/signingPopup/signingPopup.ts"],
+      outdir: "./dist",
+      mainFields: ["svelte", "module", "main", "browser"],
+      plugins: [
+        sveltePlugin({
+          preprocess: sveltePreprocess(),
+        }),
+      ],
+    });
+
     const settingsJob = build({
       ...commonConfig,
       entryPoints: ["./source/settings/settings.ts"],
@@ -104,6 +116,7 @@ async function main() {
       contentJob,
       backgroundJob,
       popupJob,
+      signingPopupJob,
       settingsJob,
       inpageJob,
       connectJob,

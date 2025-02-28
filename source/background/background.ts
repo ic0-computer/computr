@@ -53,6 +53,29 @@ async function openApprovalPopup(origin: string): Promise<"accepted" | "rejected
   });
 }
 
+async function openSigningPopup(data: any): Promise<string> {
+  return new Promise((resolve) => {
+    console.log("Opening signing popup with data:", data);
+    browser.windows.create({
+      url: browser.runtime.getURL("public/signingPopup.html"),
+      type: "popup",
+      width: 400,
+      height: 600,
+    }).then((window) => {
+      // Send command details to the popup
+      browser.runtime.sendMessage({ type: "signingDetails", data });
+      // Listen for the signed response
+      browser.runtime.onMessage.addListener(function handler(message) {
+        if (message.type === "signedResponse") {
+          resolve(message.data);
+          browser.windows.remove(window.id!);
+          browser.runtime.onMessage.removeListener(handler);
+        }
+      });
+    });
+  });
+}
+
 // Handle requestConnect
 backgroundController.exposeController("requestConnect", (opts, data) => {
   const { callback } = opts;
@@ -158,6 +181,12 @@ backgroundController.exposeController("getPrincipal", async (opts, data) => {
     console.error("Error fetching principal:", error);
     callback({ code: 5000, message: "Failed to fetch principal", data: error }, null);
   }
+});
+
+backgroundController.exposeController("signQuery", async (opts, data) => {
+  const { callback } = opts;
+  const signedResponse = await openSigningPopup(data);
+  callback(null, signedResponse);
 });
 
 // Start background RPC server

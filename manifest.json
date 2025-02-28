@@ -48,7 +48,7 @@
 
   "web_accessible_resources": [
     {
-      "resources": ["dist/inpage.js", "public/connect.html"],
+      "resources": ["dist/inpage.js", "public/connect.html", "public/signingPopup.html"],
       "matches": ["http://*/*", "https://*/*"]
     }
   ]
