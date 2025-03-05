@@ -1,6 +1,7 @@
 // source/background/background.ts
 import { BackgroundController } from "@fleekhq/browser-rpc";
 import browser from "webextension-polyfill";
+import { IDL } from "@dfinity/candid";
 
 const backgroundController = new BackgroundController({
   name: "computr-background",
@@ -49,29 +50,6 @@ async function openApprovalPopup(origin: string): Promise<"accepted" | "rejected
         browser.runtime.onMessage.removeListener(listener);
         resolve(message.response);
       }
-    });
-  });
-}
-
-async function openSigningPopup(data: any): Promise<string> {
-  return new Promise((resolve) => {
-    console.log("Opening signing popup with data:", data);
-    browser.windows.create({
-      url: browser.runtime.getURL("public/signingPopup.html"),
-      type: "popup",
-      width: 400,
-      height: 600,
-    }).then((window) => {
-      // Send command details to the popup
-      browser.runtime.sendMessage({ type: "signingDetails", data });
-      // Listen for the signed response
-      browser.runtime.onMessage.addListener(function handler(message) {
-        if (message.type === "signedResponse") {
-          resolve(message.data);
-          browser.windows.remove(window.id!);
-          browser.runtime.onMessage.removeListener(handler);
-        }
-      });
     });
   });
 }
@@ -188,6 +166,29 @@ backgroundController.exposeController("signQuery", async (opts, data) => {
   const signedResponse = await openSigningPopup(data);
   callback(null, signedResponse);
 });
+
+async function openSigningPopup(data: any): Promise<string> {
+  return new Promise((resolve) => {
+    browser.windows.create({
+      url: browser.runtime.getURL("public/signingPopup.html"),
+      type: "popup",
+      width: 400,
+      height: 600,
+    }).then((window) => {
+      setTimeout(() => {
+        browser.runtime.sendMessage({ type: "signingDetails", data });
+      }, 100);
+
+      browser.runtime.onMessage.addListener(function handler(message) {
+        if (message.type === "signedResponse") {
+          resolve(message.data);
+          browser.windows.remove(window.id!);
+          browser.runtime.onMessage.removeListener(handler);
+        }
+      });
+    });
+  });
+}
 
 // Start background RPC server
 backgroundController.start();

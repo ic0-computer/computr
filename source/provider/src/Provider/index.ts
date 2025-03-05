@@ -1,6 +1,6 @@
 // source/provider/src/Provider/index.ts
-import { HttpAgent, Actor, ActorSubclass } from "@dfinity/agent";
-import {  } from "@dfinity/candid";
+import { HttpAgent, Actor, ActorSubclass, Identity, Agent, QueryFields } from "@dfinity/agent";
+import { IDL } from "@dfinity/candid";
 import { Principal } from "@dfinity/principal";
 import { Buffer } from "buffer";
 import { AccountIdentifier } from "@dfinity/ledger-icp";
@@ -168,6 +168,30 @@ export default class Provider implements ProviderInterface {
     return response;
   }
 
+  public async principalFromText(text: string): Promise<Principal> {
+    return Principal.fromText(text);
+  }
+  public async argsToString(
+    interfaceFactory: IDL.InterfaceFactory,
+    methodName: string,
+    args: any[]
+  ): Promise<string> {
+    const service = interfaceFactory({ IDL }); // Get the service with IDL context
+    const method = service._fields.find(([name]) => name === methodName);
+    if (!method) {
+      throw new Error(`Method '${methodName}' not found in interface`);
+    }
+
+    const [_, funcType] = method;
+    const argTypes = funcType.argTypes;
+
+    if (argTypes.length !== args.length) {
+      throw new Error('Arity mismatch: argument types and values must have the same length');
+    }
+
+    return IDL.FuncClass.argsToString(argTypes, args);
+  }
+
   public async disconnect(): Promise<void> {
     const origin = window.location.origin;
     await rpcClient.call("disconnect", [{ origin }]);
@@ -194,8 +218,33 @@ export default class Provider implements ProviderInterface {
       throw Error("An interfaceFactory is required");
     }
     this.idls[canisterId] = getArgTypes(interfaceFactory);
-    const agent = this.agent || createExternalAgent({ host: "https://ic0.app" });
-    return Actor.createActor<T>(interfaceFactory, { agent, canisterId });
+    const baseAgent = this.agent || createExternalAgent({ host: "https://ic0.app" });
+
+    // Enhance the agent to pass interfaceFactory while maintaining Agent interface
+    const enhancedAgent: Agent = {
+      ...baseAgent,
+      query: async (
+        canisterId: string | Principal,
+        fields: QueryFields,
+        identity?: Identity | Promise<Identity>
+      ): Promise<any> => {
+        return (baseAgent as any).query(canisterId, fields, identity, interfaceFactory);
+      },
+      call: async (
+        canisterId: string | Principal,
+        options: { methodName: string; arg: ArrayBuffer; effectiveCanisterId?: Principal | string; callSync?: boolean },
+        identity?: Identity | Promise<Identity>
+      ): Promise<any> => {
+        return (baseAgent as any).call(canisterId, options, identity, interfaceFactory);
+      },
+      // Include required Agent methods to satisfy the interface
+      getPrincipal: baseAgent.getPrincipal.bind(baseAgent),
+      readState: baseAgent.readState.bind(baseAgent),
+      status: baseAgent.status.bind(baseAgent),
+      fetchRootKey: baseAgent.fetchRootKey.bind(baseAgent),
+    };
+
+    return Actor.createActor<T>(interfaceFactory, { agent: enhancedAgent, canisterId });
   }
 
   public async requestBalance(accountId = null): Promise<bigint> {

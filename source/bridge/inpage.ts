@@ -11,7 +11,7 @@ declare global {
 const clientRPC = new BrowserRPC(window, {
   name: 'computr-provider',
   target: 'computr-content-script',
-  timeout: 20000,
+  timeout: 0,
 });
 clientRPC.start();
 

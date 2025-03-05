@@ -1,37 +1,32 @@
-<!-- source/signingPopup/signingPopup.svelte -->
+<!-- signingPopup.svelte -->
 <script lang="ts">
   import browser from "webextension-polyfill";
 
-  // Data received from the background script
   let commandDetails: any = {};
   let signedResponse: string = "";
+  let dfxCommand: string = "";
 
-  // Submit the signed response to the background script
-  const submitSignedResponse = () => {
-    console.log("Submitting signed response:", signedResponse);
-    browser.runtime.sendMessage({ type: "signedResponse", data: signedResponse })
-      .then(() => {
-        console.log("Signed response sent successfully!");
-        window.close();
-      })
-      .catch((error) => console.error("Error sending signed response:", error));
-  };
-
-  // Listen for command details from the background script
   browser.runtime.onMessage.addListener((message) => {
     if (message.type === "signingDetails") {
       commandDetails = message.data;
-      console.log("Received command details:", commandDetails);
+      dfxCommand = `dfx canister call ${commandDetails.canisterId} ${commandDetails.methodName} '${commandDetails.candidArgs}'`;
+      console.log("Command details:", commandDetails);
     }
   });
+
+  const submitSignedResponse = () => {
+    browser.runtime.sendMessage({ type: "signedResponse", data: signedResponse })
+      .then(() => window.close())
+      .catch((error) => console.error("Error sending response:", error));
+  };
 </script>
 
 <div class="container">
   <h2>Sign Command Externally</h2>
-  <p>Please execute the following command externally and paste the signed response below:</p>
-  <pre>{JSON.stringify(commandDetails, null, 2)}</pre>
+  <p>Execute this command externally and paste the signed response:</p>
+  <pre>{dfxCommand || "Waiting for command details..."}</pre>
   <textarea bind:value={signedResponse} placeholder="Paste signed response here"></textarea>
-  <button on:click={submitSignedResponse}>Submit Signed Response</button>
+  <button on:click={submitSignedResponse}>Submit</button>
 </div>
 
 <style>
@@ -49,6 +44,8 @@
     width: 100%;
     max-width: 350px;
     overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
   }
   textarea {
     width: 100%;

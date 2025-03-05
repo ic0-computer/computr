@@ -1,114 +1,120 @@
-// source/provider/src/utils/externalAgent.ts
-import { HttpAgent, HttpAgentOptions, Identity, ApiQueryResponse, SubmitResponse, ReadStateResponse } from "@dfinity/agent";
+// In utils/externalAgent.ts
+import { HttpAgent, HttpAgentOptions, Identity, ReadStateResponse } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
+import { IDL } from "@dfinity/candid";
 import { Buffer } from "buffer";
 import { rpcClient } from "../Provider";
-import { IDL } from "@dfinity/candid";
 
 export class ExternalSignAgent extends HttpAgent {
-  constructor(options: HttpAgentOptions = {}) {
- super(options);
- }
+  constructor(...args: any[]) {
+    super(...args);
+  }
 
- // Helper to get Candid string for args (simplified for now)
- private getCandidArgs(methodName: string, interfaceFactory?: IDL.InterfaceFactory): string {
- if (!interfaceFactory) {
- return "()"; // Default to empty args if no IDL provided
- }
+  // Helper to generate Candid string from args
+  private async getCandidArgs(
+    methodName: string,
+    arg: ArrayBuffer,
+    interfaceFactory?: IDL.InterfaceFactory
+  ): Promise<string> {
+    if (!interfaceFactory) return "()";
 
- const service = interfaceFactory({ IDL });
- const method = service._fields.find(([name]) => name === methodName);
- if (!method) {
- return "()"; // Fallback if method not found
- }
+    const service = interfaceFactory({ IDL });
+    const method = service._fields.find(([name]) => name === methodName);
+    if (!method) return "()";
 
- const [_, funcType] = method;
- const argTypes = funcType.argTypes;
+    const [_, funcType] = method;
+    const argTypes = funcType.argTypes;
 
- // For demonstration, assume empty args or a specific example
- if (methodName === "icrc1_symbol") {
- return IDL.FuncClass.argsToString([], []); // "()"
- }
+    // Decode the binary arg into JavaScript values
+    const decodedArgs = IDL.decode(argTypes, Buffer.from(arg));
 
- // Example for a method with a variant argument (e.g., Init)
- if (methodName === "someMethodWithVariant") { // Replace with your actual method name
- const variantType = IDL.Variant({ Init: IDL.Record({ display_name: IDL.Text }) });
- const args = [{ Init: { display_name: "my_name" } }];
- return IDL.FuncClass.argsToString([variantType], args); // "(variant {Init=record {display_name=\"my_name\"}})"
- }
+    // Generate Candid string
+    return this.argsToString(interfaceFactory, methodName, decodedArgs);
+  }
 
- return "()"; // Default for unknown methods
- }
+  // Helper to convert decoded args to Candid string
+  private async argsToString(
+    interfaceFactory: IDL.InterfaceFactory,
+    methodName: string,
+    decodedArgs: any[]
+  ): Promise<string> {
+    const service = interfaceFactory({ IDL });
+    const method = service._fields.find(([name]) => name === methodName);
+    if (!method) throw new Error(`Method '${methodName}' not found`);
 
- async query(
- canisterId: string | Principal,
- fields: { methodName: string; arg: ArrayBuffer },
- identity?: Identity | Promise<Identity>,
- interfaceFactory?: IDL.InterfaceFactory // Optional IDL for method
- ): Promise<ApiQueryResponse> {
- const commandDetails = {
- canisterId: canisterId.toString(),
- methodName: fields.methodName,
- arg: Buffer.from(fields.arg).toString("base64"),
- candidArgs: this.getCandidArgs(fields.methodName, interfaceFactory),
- };
- console.log("Query command to execute externally:", commandDetails);
+    const [_, funcType] = method;
+    const argTypes = funcType.argTypes;
 
- // Request signing via RPC
- const signedResponse = await rpcClient.call("signQuery", [commandDetails]);
+    if (argTypes.length !== decodedArgs.length) {
+      throw new Error("Argument length mismatch");
+    }
 
- // Assume signedResponse is a base64-encoded Candid buffer
- const responseArg = Buffer.from(signedResponse, "base64");
- return {
- status: "replied" as any,
- reply: { arg: responseArg },
- httpDetails: {
- ok: true,
- status: 200,
- statusText: "OK",
- headers: [],
- },
- requestId: Buffer.from("dummy-request-id") as any,
- };
- }
+    return IDL.FuncClass.argsToString(argTypes, decodedArgs);
+  }
 
-  // Override call to match HttpAgent's signature
-  async call(
+  async query(
     canisterId: string | Principal,
-    options: { 
-      methodName: string; 
-      arg: ArrayBuffer; 
-      effectiveCanisterId?: Principal | string; 
-      callSync?: boolean 
-    },
-    identity?: Identity | Promise<Identity>
-  ): Promise<SubmitResponse> {
-    console.log("Call command to execute externally:", {
+    fields: { methodName: string; arg: ArrayBuffer },
+    identity?: Identity | Promise<Identity>,
+    interfaceFactory?: IDL.InterfaceFactory
+  ): Promise<any> {
+    const candidArgs = await this.getCandidArgs(fields.methodName, fields.arg, interfaceFactory);
+    const commandDetails = {
       canisterId: canisterId.toString(),
-      methodName: options.methodName,
-      arg: Buffer.from(options.arg).toString("base64"),
-      effectiveCanisterId: options.effectiveCanisterId?.toString(),
-    });
+      methodName: fields.methodName,
+      arg: Buffer.from(fields.arg).toString("base64"),
+      candidArgs,
+    };
+    console.log("Query command:", commandDetails);
+
+    // Trigger signing popup via RPC
+    const signedResponse = await rpcClient.call("signQuery", [commandDetails]);
+    const responseArg = Buffer.from(signedResponse, "base64");
+
     return {
-      requestId: Buffer.from("dummy-request-id") as any,
-      response: {
-        ok: true,
-        status: 200,
-        statusText: "OK",
-        body: null,
-        headers: [],
-      },
+      status: "replied",
+      reply: { arg: responseArg },
+      httpDetails: { ok: true, status: 200, statusText: "OK", headers: [] },
+      requestId: Buffer.from("dummy-request-id"),
     };
   }
 
-  // Override readState to match HttpAgent's signature
+  async call(
+    canisterId: string | Principal,
+    options: {
+      methodName: string;
+      arg: ArrayBuffer;
+      effectiveCanisterId?: Principal | string;
+      callSync?: boolean;
+    },
+    identity?: Identity | Promise<Identity>,
+    interfaceFactory?: IDL.InterfaceFactory
+  ): Promise<any> {
+    const candidArgs = await this.getCandidArgs(options.methodName, options.arg, interfaceFactory);
+    const commandDetails = {
+      canisterId: canisterId.toString(),
+      methodName: options.methodName,
+      arg: Buffer.from(options.arg).toString("base64"),
+      candidArgs,
+      effectiveCanisterId: options.effectiveCanisterId?.toString(),
+    };
+    console.log("Call command:", commandDetails);
+
+    // Trigger signing popup via RPC
+    const signedResponse = await rpcClient.call("signQuery", [commandDetails]);
+    return {
+      requestId: Buffer.from(signedResponse, "base64"),
+      response: { ok: true, status: 200, statusText: "OK", body: null, headers: [] },
+    };
+  }
+
   async readState(
     canisterId: string | Principal,
     fields: { paths: ArrayBuffer[][] },
     identity?: Identity | Promise<Identity>,
     request?: any
   ): Promise<ReadStateResponse> {
-    console.log("Read state command to execute externally:", {
+    console.log("Read state command:", {
       canisterId: canisterId.toString(),
       paths: fields.paths.map((path) => path.map((p) => Buffer.from(p).toString("base64"))),
     });
@@ -118,7 +124,6 @@ export class ExternalSignAgent extends HttpAgent {
   }
 }
 
-// Utility to create an agent instance
 export const createExternalAgent = (options: HttpAgentOptions = {}): ExternalSignAgent => {
   return new ExternalSignAgent(options);
 };
