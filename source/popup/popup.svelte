@@ -5,33 +5,22 @@
   let inputValue = '';
   let errorMessage = '';
 
-  // Subscribe to the principal section of the appStore
   let principalId = '';
   $: ({ principal } = $appStore);
   $: principalId = principal.principalId || '';
   $: inputValue = principalId;
 
-  // Load store on mount (no need for separate loadPrincipal, appStore auto-loads)
-  onMount(() => {
-    // Store is already initialized in store.ts, so no explicit load needed here
-  });
+  onMount(() => {});
 
-  // Save Principal ID
   const savePrincipalId = async () => {
     if (!inputValue) {
       errorMessage = 'Principal ID cannot be empty';
       return;
     }
-
     const error = await updateStore('principal', { principalId: inputValue });
-    if (error) {
-      errorMessage = error; // Show validation error
-    } else {
-      errorMessage = ''; // Clear error if successful
-    }
+    errorMessage = error || '';
   };
 
-  // Delete Principal ID
   const handleDeletePrincipal = async () => {
     await deletePrincipal();
     inputValue = '';
@@ -39,41 +28,67 @@
   };
 </script>
 
-<div>
-  <h1>Computr</h1>
-  <label>
-    Principal ID:
-    <input type="text" bind:value={inputValue} on:input={() => (errorMessage = '')} />
-  </label>
-  <button on:click={savePrincipalId}>Save</button>
-  <button on:click={handleDeletePrincipal}>Delete</button>
-  
-  {#if errorMessage}
-    <p class="error">{errorMessage}</p>
-  {/if}
-  
-  <p>Stored ID: {principalId || "None"}</p>
+<div class="mac-window font-mono w-full h-full flex flex-col bg-white border-2 border-black shadow-[4px_4px_0_0_#000]">
+  <!-- Window Title Bar -->
+  <div class="title-bar flex justify-between items-center border-b-2 border-black px-2 py-1 bg-gray-200">
+    <span class="text-sm font-bold">Computr</span>
+    <div class="flex gap-1">
+      <div class="w-3 h-3 border-2 border-black"></div>
+      <div class="w-3 h-3 border-2 border-black"></div>
+    </div>
+  </div>
+
+  <!-- Content -->
+  <div class="content flex-1 p-4 flex flex-col gap-3 overflow-auto">
+    <label class="flex flex-col gap-1">
+      <span class="text-sm">Principal ID:</span>
+      <input 
+        type="text" 
+        bind:value={inputValue} 
+        on:input={() => (errorMessage = '')}
+        class="w-full border-2 border-black p-1 bg-white text-black focus:outline-none focus:ring-2 focus:ring-black pixelated"
+        placeholder="Enter ID"
+      />
+    </label>
+
+    <div class="flex gap-2 justify-center">
+      <button 
+        on:click={savePrincipalId}
+        class="btn border-2 border-black bg-white px-3 py-1 hover:bg-gray-200 active:shadow-[2px_2px_0_0_#000] transition-all"
+      >
+        Save
+      </button>
+      <button 
+        on:click={handleDeletePrincipal}
+        class="btn border-2 border-black bg-white px-3 py-1 hover:bg-gray-200 active:shadow-[2px_2px_0_0_#000] transition-all"
+      >
+        Delete
+      </button>
+    </div>
+
+    {#if errorMessage}
+      <p class="text-sm text-red-600 bg-red-100 border border-red-600 p-1 text-center">
+        {errorMessage}
+      </p>
+    {/if}
+
+    <p class="text-sm">
+      Stored ID: <span class="font-bold">{principalId || "None"}</span>
+    </p>
+  </div>
 </div>
 
 <style>
-  div {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
+  .pixelated {
+    image-rendering: pixelated;
   }
-  input {
-    padding: 5px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
+  .font-mono {
+    font-family: 'Courier New', Courier, monospace;
   }
-  button {
-    margin-top: 5px;
-    padding: 5px 10px;
-    cursor: pointer;
+  .btn {
+    box-shadow: 2px 2px 0 0 #000;
   }
-  .error {
-    color: red;
-    font-size: 0.9em;
+  .btn:active {
+    transform: translate(2px, 2px);
   }
 </style>

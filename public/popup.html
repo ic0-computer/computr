@@ -3,15 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script type="module" src="../dist/popup.js"></script>
+    <link rel="stylesheet" href="/dist/tailwind.css">
+    <link rel="stylesheet" href="/dist/popup.css">
+    <script type="module" src="/dist/popup.js"></script>
   </head>
-  <body>
-    <main id="root"></main>
+  <body class="w-[400px] h-[300px] m-0 p-2 overflow-hidden bg-white">
+    <main id="root" class="w-full h-full"></main>
   </body>
-  <style>
-    html {
-      min-width: 20em;
-      min-height: 30em;
-    }
-  </style>
 </html>

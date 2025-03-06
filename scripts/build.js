@@ -102,8 +102,8 @@ async function main() {
 
     const connectJob = build({
       ...commonConfig,
-      entryPoints: ["./source/connect/connect.ts"], // Ensure this path is correct
-      outdir: "./dist", // Outputs connect.js in dist/
+      entryPoints: ["./source/connect/connect.ts"],
+      outdir: "./dist",
       mainFields: ["svelte", "module", "main", "browser"],
       plugins: [
         sveltePlugin({
