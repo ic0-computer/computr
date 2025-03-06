@@ -171,26 +171,6 @@ export default class Provider implements ProviderInterface {
   public async principalFromText(text: string): Promise<Principal> {
     return Principal.fromText(text);
   }
-  public async argsToString(
-    interfaceFactory: IDL.InterfaceFactory,
-    methodName: string,
-    args: any[]
-  ): Promise<string> {
-    const service = interfaceFactory({ IDL }); // Get the service with IDL context
-    const method = service._fields.find(([name]) => name === methodName);
-    if (!method) {
-      throw new Error(`Method '${methodName}' not found in interface`);
-    }
-
-    const [_, funcType] = method;
-    const argTypes = funcType.argTypes;
-
-    if (argTypes.length !== args.length) {
-      throw new Error('Arity mismatch: argument types and values must have the same length');
-    }
-
-    return IDL.FuncClass.argsToString(argTypes, args);
-  }
 
   public async disconnect(): Promise<void> {
     const origin = window.location.origin;
